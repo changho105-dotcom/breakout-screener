@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>돌파매매 스크리너</title>
+<style>
+  :root {
+    --bg: #0B0E11;
+    --panel: #12161C;
+    --border: #21262D;
+    --text: #E6E8EB;
+    --muted: #7A8290;
+    --up: #2ECB70;
+    --down: #F0554F;
+    --amber: #E8A33D;
+    --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+    --sans: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+  }
+  header {
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 14px;
+    font-weight: 600;
+  }
+  .tabs { display: flex; gap: 6px; }
+  .tab {
+    padding: 7px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .tab.active { background: var(--panel); color: var(--text); border-color: #3A4149; }
+
+  /* ── 시그니처 요소: 시장 국면 게이지 ── */
+  .regime-strip { display: flex; gap: 24px; padding: 16px 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .gauge { flex: 1; min-width: 220px; }
+  .gauge-label { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.05em; }
+  .gauge-track { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #1A1F26; }
+  .gauge-seg { flex: 1; border-right: 1px solid var(--bg); }
+  .gauge-seg:last-child { border-right: none; }
+  .gauge-seg[data-state="on"].down { background: var(--down); }
+  .gauge-seg[data-state="on"].pullback { background: #A9532F; }
+  .gauge-seg[data-state="on"].weak { background: var(--amber); }
+  .gauge-seg[data-state="on"].strong { background: var(--up); }
+  .gauge-seg[data-state="off"] { background: #1A1F26; }
+  .gauge-caption { font-family: var(--mono); font-size: 12px; margin-top: 6px; }
+
+  main { padding: 20px 24px; }
+  .meta { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left; padding: 8px 10px; color: var(--muted);
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 9px 10px; border-bottom: 1px solid #191D23; font-family: var(--mono); }
+  td.name { font-family: var(--sans); }
+  tr:hover td { background: #151A21; }
+  .score { font-weight: 700; }
+  .score-5 { color: var(--up); }
+  .score-4 { color: var(--up); }
+  .score-3 { color: var(--amber); }
+  .score-2, .score-1, .score-0 { color: var(--muted); }
+  .badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; }
+  .badge.pass { background: var(--up); }
+  .badge.fail { background: #2A2F37; }
+  .pos { color: var(--up); }
+  .neg { color: var(--down); }
+  .loading, .error { padding: 40px; text-align: center; color: var(--muted); font-family: var(--mono); }
+  .error { color: var(--down); }
+  .checklist-key { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>돌파매매 스크리너 · MVP</h1>
+  <div class="tabs">
+    <button class="tab active" data-market="kr">코스피 / 코스닥</button>
+    <button class="tab" data-market="us">미국주식 (S&amp;P500)</button>
+  </div>
+</header>
+
+<div class="regime-strip" id="regimeStrip"></div>
+
+<main>
+  <div class="meta" id="meta">불러오는 중...</div>
+  <div id="content"><div class="loading">데이터 불러오는 중...</div></div>
+  <div class="checklist-key">
+    ● 체크리스트 순서: 시장국면 · 상대강도(RS) · 거래량급증 · 돌파 · 유동성 — 5개 중 몇 개를 통과했는지가 점수(score)
+  </div>
+</main>
+
+<script>
+const REGIME_ORDER = ['DOWN', 'PULLBACK', 'WEAK_UP', 'STRONG_UP'];
+const REGIME_LABEL = { DOWN: '하락장 · 매매중단', PULLBACK: '조정 · 신규진입중단', WEAK_UP: '약상승 · 비중축소', STRONG_UP: '강한상승 · 정상매매', UNKNOWN: '데이터 부족' };
+const REGIME_CLASS = { DOWN: 'down', PULLBACK: 'pullback', WEAK_UP: 'weak', STRONG_UP: 'strong' };
+
+let currentMarket = 'kr';
+
+async function load(market) {
+  currentMarket = market;
+  document.getElementById('content').innerHTML = '<div class="loading">데이터 불러오는 중... (첫 호출은 크롤링 때문에 다소 걸릴 수 있어요)</div>';
+  document.getElementById('regimeStrip').innerHTML = '';
+  try {
+    const res = await fetch(`/api/screen/${market}`);
+    if (!res.ok) throw new Error(`서버 응답 오류 (${res.status})`);
+    const data = await res.json();
+    renderRegime(data.regime);
+    renderTable(data.stocks, market);
+    document.getElementById('meta').textContent = `업데이트: ${new Date(data.updatedAt).toLocaleString('ko-KR')} · 종목 수: ${data.stocks.length}`;
+  } catch (err) {
+    document.getElementById('content').innerHTML = `<div class="error">불러오기 실패: ${err.message}</div>`;
+    document.getElementById('meta').textContent = '';
+  }
+}
+
+function renderRegime(regime) {
+  const strip = document.getElementById('regimeStrip');
+  strip.innerHTML = Object.entries(regime).map(([mkt, state]) => {
+    const idx = REGIME_ORDER.indexOf(state);
+    const segs = REGIME_ORDER.map((r, i) => {
+      const on = i <= idx;
+      return `<div class="gauge-seg ${REGIME_CLASS[r]}" data-state="${on ? 'on' : 'off'}"></div>`;
+    }).join('');
+    return `
+      <div class="gauge">
+        <div class="gauge-label">${mkt}</div>
+        <div class="gauge-track">${segs}</div>
+        <div class="gauge-caption" style="color: ${idx <= 0 ? 'var(--down)' : idx === 1 ? '#A9532F' : idx === 2 ? 'var(--amber)' : 'var(--up)'}">${REGIME_LABEL[state] || state}</div>
+      </div>`;
+  }).join('');
+}
+
+function fmtPct(v) {
+  if (v === null || v === undefined) return '-';
+  const pct = (v * 100).toFixed(1) + '%';
+  return `<span class="${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '+' : ''}${pct}</span>`;
+}
+
+function renderTable(stocks, market) {
+  if (!stocks.length) {
+    document.getElementById('content').innerHTML = '<div class="error">조건에 맞는 데이터가 없습니다. (크롤링 결과 확인 필요)</div>';
+    return;
+  }
+  const rows = stocks.map(s => `
+    <tr>
+      <td class="name">${s.name} <span style="color:var(--muted)">${s.ticker}</span></td>
+      <td class="score score-${s.score}">${s.score}/5</td>
+      <td>
+        <span class="badge ${s.checklist.marketRegimeOk ? 'pass' : 'fail'}" title="시장국면"></span>
+        <span class="badge ${s.checklist.relativeStrengthOk ? 'pass' : 'fail'}" title="상대강도"></span>
+        <span class="badge ${s.checklist.volumeSurgeOk ? 'pass' : 'fail'}" title="거래량"></span>
+        <span class="badge ${s.checklist.breakoutOk ? 'pass' : 'fail'}" title="돌파"></span>
+        <span class="badge ${s.checklist.liquidityOk ? 'pass' : 'fail'}" title="유동성"></span>
+      </td>
+      <td>${fmtPct(s.relativeStrength)}</td>
+      <td>${s.volumeSurgeRatio ? s.volumeSurgeRatio.toFixed(2) + 'x' : '-'}</td>
+      <td>${s.lastClose?.toLocaleString() ?? '-'}</td>
+      <td>${s.breakoutLevel ? s.breakoutLevel.toLocaleString(undefined, {maximumFractionDigits:2}) : '-'}</td>
+      <td>${s.stopLossLevel ? s.stopLossLevel.toLocaleString(undefined, {maximumFractionDigits:2}) : '-'}</td>
+      <td>${(s.positionSizeFactor * 100).toFixed(0)}%</td>
+    </tr>`).join('');
+
+  document.getElementById('content').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>종목</th><th>점수</th><th>체크리스트</th><th>RS(60d)</th><th>거래량비</th>
+          <th>현재가</th><th>돌파선</th><th>손절선</th><th>권장비중</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    load(btn.dataset.market);
+  });
+});
+
+load('kr');
+</script>
+
+</body>
+</html>

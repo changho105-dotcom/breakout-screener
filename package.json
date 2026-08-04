@@ -1,0 +1,16 @@
+{
+  "name": "breakout-screener",
+  "version": "1.0.0",
+  "description": "돌파매매 종목 스크리너 - 코스피/코스닥 + 미국주식 (1단계 MVP)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "csv-parse": "^5.6.0",
+    "express": "^4.22.2",
+    "node-cache": "^5.1.2",
+    "node-fetch": "^2.7.0"
+  }
+}
