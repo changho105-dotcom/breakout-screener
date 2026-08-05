@@ -146,7 +146,8 @@
   <div class="meta" id="meta">불러오는 중...</div>
   <div id="content"><div class="loading">데이터 불러오는 중...</div></div>
   <div class="checklist-key" id="checklistKey">
-    ● 체크리스트 순서: 시장국면 · 신고가근접(-20%이내) · 거래량급증 · 전고점돌파 · 유동성 — 5개 중 몇 개를 통과했는지가 점수(score). 기준 기간은 상단 드롭다운으로 변경 가능<br/>
+    ● 체크리스트 순서: 시장국면 · 신고가근접(-20%이내) · 거래량급증 · 전고점돌파 — 4개 중 몇 개를 통과했는지가 점수(score). 기준 기간은 상단 드롭다운으로 변경 가능<br/>
+    ● 유동성 미달 종목은 체크리스트가 아니라 결과 목록에서 아예 제외됩니다 (실제 체결이 어려운 종목이라 판단 자체가 무의미해서요)
     ● 권장기준(상/중/하) = 시장 전체 국면 기준 신규진입 강도 · 개별강도(%) = 시장국면과 무관하게 이 종목 자체가 조건을 얼마나 충족하는지
   </div>
 </main>
@@ -187,7 +188,7 @@ async function load(market) {
     const data = await res.json();
     renderRegime(data.regime);
     renderTable(data.stocks, market);
-    document.getElementById('meta').textContent = `업데이트: ${new Date(data.updatedAt).toLocaleString('ko-KR')} · 종목 수: ${data.stocks.length} · 기준: ${LOOKBACK_LABEL[data.lookback] || data.lookback}`;
+    document.getElementById('meta').textContent = `업데이트: ${new Date(data.updatedAt).toLocaleString('ko-KR')} · 종목 수: ${data.stocks.length} · 기준: ${LOOKBACK_LABEL[data.lookback] || data.lookback}${data.excludedForLiquidity ? ` · 유동성 미달 ${data.excludedForLiquidity}종목 제외됨` : ''}`;
   } catch (err) {
     document.getElementById('content').innerHTML = `<div class="error">불러오기 실패: ${err.message}</div>`;
     document.getElementById('meta').textContent = '';
@@ -361,13 +362,12 @@ function renderTable(stocks, market) {
     <tr>
       <td class="name">${s.name} <span style="color:var(--muted)">${s.ticker}</span></td>
       <td style="color:var(--muted); font-size:12px;">${s.sector || '-'}</td>
-      <td class="score score-${s.score}">${s.score}/5</td>
+      <td class="score score-${s.score}">${s.score}/4</td>
       <td>
         <span class="badge ${s.checklist.marketRegimeOk ? 'pass' : 'fail'}" title="시장국면"></span>
         <span class="badge ${s.checklist.relativeStrengthOk ? 'pass' : 'fail'}" title="신고가근접"></span>
         <span class="badge ${s.checklist.volumeSurgeOk ? 'pass' : 'fail'}" title="거래량"></span>
         <span class="badge ${s.checklist.breakoutOk ? 'pass' : 'fail'}" title="돌파"></span>
-        <span class="badge ${s.checklist.liquidityOk ? 'pass' : 'fail'}" title="유동성"></span>
       </td>
       <td>${fmtPct(s.relativeStrength)}</td>
       <td>${s.volumeSurgeRatio ? s.volumeSurgeRatio.toFixed(2) + 'x' : '-'}</td>

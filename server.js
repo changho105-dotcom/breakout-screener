@@ -112,6 +112,8 @@ async function screenKR(lookbackKey) {
       lookback: lookbackDays,
     })
   );
+  const liquidStocks = evaluated.filter(s => s.liquidityOk);
+  const excludedForLiquidity = evaluated.length - liquidStocks.length;
 
   const result = {
     updatedAt: new Date().toISOString(),
@@ -119,7 +121,8 @@ async function screenKR(lookbackKey) {
     regime: regimeByMarket,
     sectorAvg,
     sectorCoverage: `${Object.keys(sectorMap).length}종목 매칭`, // 업종 크롤링이 실패하면 0종목으로 나타남
-    stocks: evaluated.sort((a, b) => b.score - a.score),
+    excludedForLiquidity, // 유동성 미달로 결과에서 제외된 종목 수
+    stocks: liquidStocks.sort((a, b) => b.score - a.score),
   };
   cache.set(cacheKey, result);
   return result;
@@ -166,13 +169,16 @@ async function screenUS(lookbackKey) {
       lookback: lookbackDays,
     })
   );
+  const liquidStocks = evaluated.filter(s => s.liquidityOk);
+  const excludedForLiquidity = evaluated.length - liquidStocks.length;
 
   const result = {
     updatedAt: new Date().toISOString(),
     lookback: key,
     regime,
     sectorAvg,
-    stocks: evaluated.sort((a, b) => b.score - a.score),
+    excludedForLiquidity,
+    stocks: liquidStocks.sort((a, b) => b.score - a.score),
   };
   cache.set(cacheKey, result);
   return result;
