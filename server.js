@@ -3,6 +3,7 @@ const path = require('path');
 const NodeCache = require('node-cache');
 
 const { classifyMarketRegime, evaluateStock } = require('./lib/indicators');
+const { runBreakoutBacktest } = require('./lib/backtest');
 const { runBatched } = require('./lib/batch');
 const krSource = require('./lib/krSource');
 const usSource = require('./lib/usSource');
@@ -145,6 +146,45 @@ app.get('/api/screen/us', async (req, res) => {
   try {
     const data = await screenUS();
     res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/backtest/us/:ticker', async (req, res) => {
+  const ticker = req.params.ticker.toUpperCase();
+  const cacheKey = `backtest_us_${ticker}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json(cached);
+
+  try {
+    const days = 750; // 약 3년치 일봉
+    const [stockOhlcv, indexOhlcv] = await Promise.all([
+      usSource.fetchOHLCV(ticker, days),
+      usSource.fetchIndexOHLCV(days),
+    ]);
+    if (!stockOhlcv.closes.length) {
+      return res.status(404).json({ error: `${ticker} 데이터를 찾을 수 없습니다 (티커 확인 필요)` });
+    }
+
+    // 종목과 지수의 날짜 길이가 다를 수 있어 뒤쪽(최근) 기준으로 짧은 쪽에 맞춤
+    const len = Math.min(stockOhlcv.closes.length, indexOhlcv.closes.length);
+    const trim = (arr) => arr.slice(-len);
+
+    const result = runBreakoutBacktest({
+      dates: trim(stockOhlcv.dates),
+      opens: trim(stockOhlcv.opens),
+      highs: trim(stockOhlcv.highs),
+      lows: trim(stockOhlcv.lows),
+      closes: trim(stockOhlcv.closes),
+      volumes: trim(stockOhlcv.volumes),
+      indexCloses: trim(indexOhlcv.closes),
+    });
+
+    const payload = { ticker, periodDays: len, ...result };
+    cache.set(cacheKey, payload, 60 * 60); // 1시간 캐시
+    res.json(payload);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

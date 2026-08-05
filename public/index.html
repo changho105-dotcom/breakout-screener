@@ -87,6 +87,23 @@
   .loading, .error { padding: 40px; text-align: center; color: var(--muted); font-family: var(--mono); }
   .error { color: var(--down); }
   .checklist-key { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 14px; }
+
+  .backtest-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 20px; }
+  .backtest-controls input {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--mono); font-size: 14px; padding: 8px 12px; border-radius: 6px; width: 140px;
+    text-transform: uppercase;
+  }
+  .backtest-controls button {
+    background: var(--up); color: #05130A; border: none; border-radius: 6px;
+    padding: 8px 18px; font-family: var(--mono); font-weight: 700; font-size: 13px; cursor: pointer;
+  }
+  .backtest-controls button:disabled { background: #2A2F37; color: var(--muted); cursor: not-allowed; }
+  .summary-cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 20px; }
+  .summary-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .summary-card .label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .summary-card .value { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+  .reason-tag { font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #1A1F26; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -96,15 +113,21 @@
   <div class="tabs">
     <button class="tab active" data-market="kr">코스피 / 코스닥</button>
     <button class="tab" data-market="us">미국주식 (S&amp;P500)</button>
+    <button class="tab" data-market="backtest">백테스트</button>
   </div>
 </header>
 
 <div class="regime-strip" id="regimeStrip"></div>
 
 <main>
+  <div id="backtestControls" class="backtest-controls" style="display:none;">
+    <input id="backtestTicker" placeholder="예: PLTR" value="PLTR" />
+    <button id="backtestRun">백테스트 실행</button>
+    <span style="font-family: var(--mono); font-size: 11px; color: var(--muted);">미국 주식 티커만 지원 (최근 약 3년 일봉 기준)</span>
+  </div>
   <div class="meta" id="meta">불러오는 중...</div>
   <div id="content"><div class="loading">데이터 불러오는 중...</div></div>
-  <div class="checklist-key">
+  <div class="checklist-key" id="checklistKey">
     ● 체크리스트 순서: 시장국면 · 상대강도(RS) · 거래량급증 · 돌파 · 유동성 — 5개 중 몇 개를 통과했는지가 점수(score)
   </div>
 </main>
@@ -118,6 +141,16 @@ let currentMarket = 'kr';
 
 async function load(market) {
   currentMarket = market;
+  document.getElementById('backtestControls').style.display = market === 'backtest' ? 'flex' : 'none';
+  document.getElementById('checklistKey').style.display = market === 'backtest' ? 'none' : 'block';
+
+  if (market === 'backtest') {
+    document.getElementById('regimeStrip').innerHTML = '';
+    document.getElementById('meta').textContent = '';
+    document.getElementById('content').innerHTML = '<div class="loading">종목 티커 입력 후 "백테스트 실행"을 눌러주세요</div>';
+    return;
+  }
+
   document.getElementById('content').innerHTML = '<div class="loading">데이터 불러오는 중... (첫 호출은 크롤링 때문에 다소 걸릴 수 있어요)</div>';
   document.getElementById('regimeStrip').innerHTML = '';
   try {
@@ -138,6 +171,73 @@ async function load(market) {
     document.getElementById('content').innerHTML = `<div class="error">불러오기 실패: ${err.message}</div>`;
     document.getElementById('meta').textContent = '';
   }
+}
+
+async function runBacktest() {
+  const ticker = document.getElementById('backtestTicker').value.trim().toUpperCase();
+  if (!ticker) return;
+  const btn = document.getElementById('backtestRun');
+  btn.disabled = true;
+  document.getElementById('content').innerHTML = '<div class="loading">백테스트 실행 중... (3년치 일봉 계산이라 조금 걸려요)</div>';
+  try {
+    const res = await fetch(`/api/backtest/us/${encodeURIComponent(ticker)}`);
+    if (!res.ok) {
+      let detail = `상태코드 ${res.status}`;
+      try { const b = await res.json(); if (b.error) detail = b.error; } catch (_) {}
+      throw new Error(detail);
+    }
+    const data = await res.json();
+    renderBacktest(data);
+    document.getElementById('meta').textContent = `${data.ticker} · 최근 ${data.periodDays}거래일 기준`;
+  } catch (err) {
+    document.getElementById('content').innerHTML = `<div class="error">백테스트 실패: ${err.message}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderBacktest(data) {
+  const s = data.summary;
+  if (!data.trades.length) {
+    document.getElementById('content').innerHTML = `<div class="error">${s.message || '조건을 만족하는 거래가 없었습니다.'}</div>`;
+    return;
+  }
+  const cards = [
+    ['총 거래', s.totalTrades + '회'],
+    ['승률', s.winRate + '%'],
+    ['평균 수익(승)', '+' + s.avgWinPct + '%'],
+    ['평균 손실(패)', s.avgLossPct + '%'],
+    ['손익비', s.profitFactor ?? '-'],
+    ['순차 복리수익률', (s.compoundedReturnPct >= 0 ? '+' : '') + s.compoundedReturnPct + '%'],
+  ];
+  const cardsHtml = cards.map(([label, value]) => `
+    <div class="summary-card">
+      <div class="label">${label}</div>
+      <div class="value ${typeof value === 'string' && value.startsWith('+') ? 'pos' : (typeof value === 'string' && value.startsWith('-') && label !== '평균 손실(패)' ? 'neg' : '')}">${value}</div>
+    </div>`).join('');
+
+  const reasonLabel = { stop_loss: '손절', regime_down: '국면전환청산', max_hold: '기간만료청산', still_open: '보유중(미청산)' };
+  const rows = data.trades.map(t => `
+    <tr>
+      <td>${t.entryDate}</td>
+      <td>${t.entryPrice}</td>
+      <td>${t.exitDate}</td>
+      <td>${t.exitPrice}</td>
+      <td class="${t.returnPct >= 0 ? 'pos' : 'neg'}">${t.returnPct >= 0 ? '+' : ''}${t.returnPct}%</td>
+      <td>${t.holdDays}일</td>
+      <td><span class="reason-tag">${reasonLabel[t.reason] || t.reason}</span></td>
+    </tr>`).join('');
+
+  document.getElementById('content').innerHTML = `
+    <div class="summary-cards">${cardsHtml}</div>
+    <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:10px;">
+      최대낙폭(MDD): <span class="neg">${s.maxDrawdownPct}%</span> ·
+      청산 사유: ${Object.entries(s.exitReasonCounts).map(([k,v]) => `${reasonLabel[k]||k} ${v}회`).join(' · ')}
+    </div>
+    <table>
+      <thead><tr><th>진입일</th><th>진입가</th><th>청산일</th><th>청산가</th><th>수익률</th><th>보유기간</th><th>청산사유</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 function renderRegime(regime) {
@@ -205,6 +305,11 @@ document.querySelectorAll('.tab').forEach(btn => {
     btn.classList.add('active');
     load(btn.dataset.market);
   });
+});
+
+document.getElementById('backtestRun').addEventListener('click', runBacktest);
+document.getElementById('backtestTicker').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') runBacktest();
 });
 
 load('kr');
