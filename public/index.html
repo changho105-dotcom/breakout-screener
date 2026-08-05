@@ -132,6 +132,29 @@
   }
   .chart-legend { display: flex; gap: 16px; font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
   .chart-legend span.dot { display:inline-block; width:10px; height:2px; margin-right:4px; vertical-align:middle; }
+
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; padding: 0 4px; }
+  .table-scroll table { min-width: 880px; }
+
+  /* ── 모바일(좁은 화면) 대응 ── */
+  @media (max-width: 640px) {
+    header { padding: 14px 12px 10px; }
+    header h1 { font-size: 12px; margin-bottom: 10px; }
+    main { padding: 12px; }
+    .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+    .tab { flex-shrink: 0; padding: 8px 14px; font-size: 12px; }
+    .regime-strip { padding: 12px; gap: 14px; }
+    .gauge { min-width: 100%; }
+    .lookback-wrap { width: 100%; justify-content: space-between; }
+    .lookback-select { flex: 1; }
+    .backtest-controls { flex-wrap: wrap; }
+    .backtest-controls input { width: 100%; }
+    .backtest-controls span { width: 100%; order: 3; }
+    .summary-cards { grid-template-columns: repeat(2, 1fr); }
+    .summary-card .value { font-size: 16px; }
+    .modal-box { padding: 14px; width: 96vw; max-height: 90vh; }
+    .chart-legend { font-size: 10px; gap: 10px; }
+  }
 </style>
 </head>
 <body>
@@ -298,12 +321,14 @@ function renderBacktestCompare(data) {
   }).join('');
 
   document.getElementById('content').innerHTML = `
+    <div class="table-scroll">
     <table>
       <thead>
         <tr><th>종목</th><th>거래횟수</th><th>승률</th><th>손익비</th><th>복리수익률</th><th>MDD</th><th>거래비용</th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
+    </div>
     <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:10px;">
       상세 거래내역을 보려면 티커 하나만 입력해서 다시 실행하세요.
     </div>`;
@@ -350,10 +375,12 @@ function renderBacktest(data) {
       거래비용 반영 전 복리수익률: ${s.grossCompoundedReturnPct}% (거래비용으로 -${s.tradingCostDragPct}%p 차감) ·
       청산 사유: ${Object.entries(s.exitReasonCounts).map(([k,v]) => `${reasonLabel[k]||k} ${v}회`).join(' · ')}
     </div>
+    <div class="table-scroll">
     <table>
       <thead><tr><th>진입일</th><th>진입가</th><th>청산일</th><th>청산가</th><th>수익률(순)</th><th>보유기간</th><th>청산사유</th><th>손절기준</th></tr></thead>
       <tbody>${rows}</tbody>
-    </table>`;
+    </table>
+    </div>`;
 }
 
 function renderRegime(regime) {
@@ -418,6 +445,7 @@ function renderTable(stocks, market) {
     </tr>`).join('');
 
   document.getElementById('content').innerHTML = `
+    <div class="table-scroll">
     <table>
       <thead>
         <tr>
@@ -427,7 +455,8 @@ function renderTable(stocks, market) {
         </tr>
       </thead>
       <tbody>${rows}</tbody>
-    </table>`;
+    </table>
+    </div>`;
 }
 
 document.querySelectorAll('.tab').forEach(btn => {
