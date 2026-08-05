@@ -35,8 +35,8 @@ async function screenKR() {
   const stockList = [...kospiList, ...kosdaqList];
 
   const [kospiIdx, kosdaqIdx] = await Promise.all([
-    krSource.fetchIndexOHLCV('KOSPI'),
-    krSource.fetchIndexOHLCV('KOSDAQ'),
+    krSource.fetchIndexOHLCV('KOSPI', 280),
+    krSource.fetchIndexOHLCV('KOSDAQ', 280),
   ]);
   const regimeByMarket = {
     KOSPI: classifyMarketRegime(kospiIdx.closes),
@@ -48,7 +48,7 @@ async function screenKR() {
   };
 
   const evaluated = await runBatched(stockList, async (stock) => {
-    const ohlcv = await krSource.fetchOHLCV(stock.ticker);
+    const ohlcv = await krSource.fetchOHLCV(stock.ticker, 280);
     if (!ohlcv.closes.length) return null;
     return evaluateStock({
       ticker: stock.ticker,
@@ -78,7 +78,7 @@ async function screenUS() {
   if (cached) return cached;
 
   const stockList = await usSource.fetchStockList();
-  const allIndexOhlcv = await usSource.fetchAllIndexOHLCV();
+  const allIndexOhlcv = await usSource.fetchAllIndexOHLCV(280);
   const regime = {
     SP500: classifyMarketRegime(allIndexOhlcv.SP500.closes),
     DOW: classifyMarketRegime(allIndexOhlcv.DOW.closes),
@@ -89,7 +89,7 @@ async function screenUS() {
   const primaryRegime = regime.SP500;
 
   const withOhlcv = await runBatched(stockList, async (stock) => {
-    const ohlcv = await usSource.fetchOHLCV(stock.ticker);
+    const ohlcv = await usSource.fetchOHLCV(stock.ticker, 280);
     if (!ohlcv.closes.length) return null;
     return { stock, ohlcv };
   }, 10);
@@ -159,7 +159,7 @@ app.get('/api/backtest/us/:ticker', async (req, res) => {
   if (cached) return res.json(cached);
 
   try {
-    const days = 750; // 약 3년치 일봉
+    const days = 1260; // 약 5년치 일봉 (52주 워밍업 이후에도 충분한 검증 기간 확보 위해 확장)
     const [stockOhlcv, indexOhlcv] = await Promise.all([
       usSource.fetchOHLCV(ticker, days),
       usSource.fetchIndexOHLCV(days),
