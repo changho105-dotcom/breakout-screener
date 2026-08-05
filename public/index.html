@@ -146,7 +146,8 @@
   <div class="meta" id="meta">불러오는 중...</div>
   <div id="content"><div class="loading">데이터 불러오는 중...</div></div>
   <div class="checklist-key" id="checklistKey">
-    ● 체크리스트 순서: 시장국면 · 신고가근접(-20%이내) · 거래량급증 · 전고점돌파 · 유동성 — 5개 중 몇 개를 통과했는지가 점수(score). 기준 기간은 상단 드롭다운으로 변경 가능
+    ● 체크리스트 순서: 시장국면 · 신고가근접(-20%이내) · 거래량급증 · 전고점돌파 · 유동성 — 5개 중 몇 개를 통과했는지가 점수(score). 기준 기간은 상단 드롭다운으로 변경 가능<br/>
+    ● 권장기준(상/중/하) = 시장 전체 국면 기준 신규진입 강도 · 개별강도(%) = 시장국면과 무관하게 이 종목 자체가 조건을 얼마나 충족하는지
   </div>
 </main>
 
@@ -284,6 +285,12 @@ function fmtPct(v) {
   return `<span class="${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '+' : ''}${pct}</span>`;
 }
 
+function fmtTier(positionSizeFactor) {
+  if (positionSizeFactor >= 1) return '<span class="pos" style="font-weight:700;">상</span>';
+  if (positionSizeFactor >= 0.5) return '<span style="color:var(--amber); font-weight:700;">중</span>';
+  return '<span class="neg" style="font-weight:700;">하</span>';
+}
+
 function renderTable(stocks, market) {
   if (!stocks.length) {
     document.getElementById('content').innerHTML = '<div class="error">조건에 맞는 데이터가 없습니다. (크롤링 결과 확인 필요)</div>';
@@ -295,7 +302,7 @@ function renderTable(stocks, market) {
       <td class="score score-${s.score}">${s.score}/5</td>
       <td>
         <span class="badge ${s.checklist.marketRegimeOk ? 'pass' : 'fail'}" title="시장국면"></span>
-        <span class="badge ${s.checklist.relativeStrengthOk ? 'pass' : 'fail'}" title="36주신고가근접"></span>
+        <span class="badge ${s.checklist.relativeStrengthOk ? 'pass' : 'fail'}" title="신고가근접"></span>
         <span class="badge ${s.checklist.volumeSurgeOk ? 'pass' : 'fail'}" title="거래량"></span>
         <span class="badge ${s.checklist.breakoutOk ? 'pass' : 'fail'}" title="돌파"></span>
         <span class="badge ${s.checklist.liquidityOk ? 'pass' : 'fail'}" title="유동성"></span>
@@ -305,15 +312,16 @@ function renderTable(stocks, market) {
       <td>${s.lastClose?.toLocaleString() ?? '-'}</td>
       <td>${s.breakoutLevel ? s.breakoutLevel.toLocaleString(undefined, {maximumFractionDigits:2}) : '-'}</td>
       <td>${s.stopLossLevel ? s.stopLossLevel.toLocaleString(undefined, {maximumFractionDigits:2}) : '-'}</td>
-      <td>${(s.positionSizeFactor * 100).toFixed(0)}%</td>
+      <td>${fmtTier(s.positionSizeFactor)}</td>
+      <td class="${s.stockStrengthPct >= 75 ? 'pos' : s.stockStrengthPct <= 25 ? 'neg' : ''}">${s.stockStrengthPct}%</td>
     </tr>`).join('');
 
   document.getElementById('content').innerHTML = `
     <table>
       <thead>
         <tr>
-          <th>종목</th><th>점수</th><th>체크리스트</th><th>36주고점대비</th><th>거래량비</th>
-          <th>현재가</th><th>돌파선</th><th>손절선</th><th>권장비중</th>
+          <th>종목</th><th>점수</th><th>체크리스트</th><th>고점대비</th><th>거래량비</th>
+          <th>현재가</th><th>돌파선</th><th>손절선</th><th>권장기준</th><th>개별강도</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
