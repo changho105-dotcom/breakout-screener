@@ -13,6 +13,8 @@ const PORT = process.env.PORT || 3000;
 
 // 스크리닝 결과 캐시 (크롤링 부하 방지). 기본 30분 - 필요시 조정.
 const cache = new NodeCache({ stdTTL: 60 * 30 });
+// 업종(섹터) 맵 전용 캐시 - 자주 안 바뀌는 데이터라 24시간으로 길게
+const SECTOR_MAP_TTL = 60 * 60 * 24;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -30,15 +32,46 @@ function resolveLookback(queryValue) {
   return { key, days: LOOKBACK_OPTIONS[key].days };
 }
 
+/**
+ * 섹터별 N일 평균 수익률(섹터 강도) 계산 - KR/US 공용
+ */
+function computeSectorAvg(itemsWithSectorAndCloses, days = 60) {
+  const sectorReturns = {};
+  for (const { sector, closes } of itemsWithSectorAndCloses) {
+    const ret = returnOverDays(closes, days);
+    if (ret === null || !sector) continue;
+    if (!sectorReturns[sector]) sectorReturns[sector] = [];
+    sectorReturns[sector].push(ret);
+  }
+  const sectorAvg = {};
+  for (const [sector, rets] of Object.entries(sectorReturns)) {
+    sectorAvg[sector] = rets.reduce((a, b) => a + b, 0) / rets.length;
+  }
+  return sectorAvg;
+}
+
+/**
+ * 국내 업종 맵 - 24시간 캐시. 크롤링 실패해도 빈 맵({})으로 안전하게 진행.
+ */
+async function getKrSectorMap() {
+  const cacheKey = 'kr_sector_map';
+  const cached = cache.get(cacheKey);
+  if (cached) return cached;
+  const map = await krSource.fetchSectorMap();
+  cache.set(cacheKey, map, SECTOR_MAP_TTL);
+  return map;
+}
+
 async function screenKR(lookbackKey) {
   const { key, days: lookbackDays } = resolveLookback(lookbackKey);
   const cacheKey = `kr_${key}`;
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  const [kospiList, kosdaqList] = await Promise.all([
+  const [kospiList, kosdaqList, sectorMap] = await Promise.all([
     krSource.fetchStockList(0, 4), // 코스피 상위 ~200
     krSource.fetchStockList(1, 4), // 코스닥 상위 ~200
+    getKrSectorMap(),
   ]);
   const stockList = [...kospiList, ...kosdaqList];
 
@@ -55,28 +88,37 @@ async function screenKR(lookbackKey) {
     KOSDAQ: kosdaqIdx.closes,
   };
 
-  const evaluated = await runBatched(stockList, async (stock) => {
+  const withOhlcv = await runBatched(stockList, async (stock) => {
     const ohlcv = await krSource.fetchOHLCV(stock.ticker, 280);
     if (!ohlcv.closes.length) return null;
-    return evaluateStock({
+    return { stock, ohlcv, sector: sectorMap[stock.ticker] || null };
+  }, 8);
+
+  const sectorAvg = computeSectorAvg(withOhlcv.map(({ sector, ohlcv }) => ({ sector, closes: ohlcv.closes })), 60);
+
+  const evaluated = withOhlcv.map(({ stock, ohlcv, sector }) =>
+    evaluateStock({
       ticker: stock.ticker,
       name: stock.name,
-      sector: null, // MVP: 국내 업종 데이터는 후속 단계에서 추가 (네이버 업종 페이지 별도 크롤링 필요)
+      sector,
       highs: ohlcv.highs,
       closes: ohlcv.closes,
+      lows: ohlcv.lows,
       volumes: ohlcv.volumes,
       indexCloses: indexClosesByMarket[stock.market],
       indexRegime: regimeByMarket[stock.market],
-      sectorAvgReturn: null,
+      sectorAvgReturn: sector ? sectorAvg[sector] ?? null : null,
       market: 'KR',
       lookback: lookbackDays,
-    });
-  }, 8);
+    })
+  );
 
   const result = {
     updatedAt: new Date().toISOString(),
     lookback: key,
     regime: regimeByMarket,
+    sectorAvg,
+    sectorCoverage: `${Object.keys(sectorMap).length}종목 매칭`, // 업종 크롤링이 실패하면 0종목으로 나타남
     stocks: evaluated.sort((a, b) => b.score - a.score),
   };
   cache.set(cacheKey, result);
@@ -106,18 +148,7 @@ async function screenUS(lookbackKey) {
     return { stock, ohlcv };
   }, 10);
 
-  // 섹터 강도: 섹터별 60일 평균 수익률 계산
-  const sectorReturns = {};
-  for (const { stock, ohlcv } of withOhlcv) {
-    const ret = returnOverDays(ohlcv.closes, 60);
-    if (ret === null) continue;
-    if (!sectorReturns[stock.sector]) sectorReturns[stock.sector] = [];
-    sectorReturns[stock.sector].push(ret);
-  }
-  const sectorAvg = {};
-  for (const [sector, rets] of Object.entries(sectorReturns)) {
-    sectorAvg[sector] = rets.reduce((a, b) => a + b, 0) / rets.length;
-  }
+  const sectorAvg = computeSectorAvg(withOhlcv.map(({ stock, ohlcv }) => ({ sector: stock.sector, closes: ohlcv.closes })), 60);
 
   const evaluated = withOhlcv.map(({ stock, ohlcv }) =>
     evaluateStock({
@@ -126,6 +157,7 @@ async function screenUS(lookbackKey) {
       sector: stock.sector,
       highs: ohlcv.highs,
       closes: ohlcv.closes,
+      lows: ohlcv.lows,
       volumes: ohlcv.volumes,
       indexCloses: primaryIndexCloses,
       indexRegime: primaryRegime,
@@ -166,45 +198,79 @@ app.get('/api/screen/us', async (req, res) => {
   }
 });
 
+/**
+ * 단일 종목 백테스트 실행 (단일/비교 엔드포인트 공용 로직)
+ */
+async function runSingleBacktest(ticker, lookbackKey) {
+  const { key, days: lookbackDays } = resolveLookback(lookbackKey);
+  const cacheKey = `backtest_us_${ticker}_${key}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached;
+
+  const days = 1260; // 약 5년치 일봉 (신고가 워밍업 이후에도 충분한 검증 기간 확보 위해 확장)
+  const [stockOhlcv, indexOhlcv] = await Promise.all([
+    usSource.fetchOHLCV(ticker, days),
+    usSource.fetchIndexOHLCV(days),
+  ]);
+  if (!stockOhlcv.closes.length) {
+    const err = new Error(`${ticker} 데이터를 찾을 수 없습니다 (티커 확인 필요)`);
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // 종목과 지수의 날짜 길이가 다를 수 있어 뒤쪽(최근) 기준으로 짧은 쪽에 맞춤
+  const len = Math.min(stockOhlcv.closes.length, indexOhlcv.closes.length);
+  const trim = (arr) => arr.slice(-len);
+
+  const result = runBreakoutBacktest({
+    dates: trim(stockOhlcv.dates),
+    opens: trim(stockOhlcv.opens),
+    highs: trim(stockOhlcv.highs),
+    lows: trim(stockOhlcv.lows),
+    closes: trim(stockOhlcv.closes),
+    volumes: trim(stockOhlcv.volumes),
+    indexCloses: trim(indexOhlcv.closes),
+    lookback: lookbackDays,
+  });
+
+  const payload = { ticker, lookback: key, periodDays: len, ...result };
+  cache.set(cacheKey, payload, 60 * 60); // 1시간 캐시
+  return payload;
+}
+
 app.get('/api/backtest/us/:ticker', async (req, res) => {
   const ticker = req.params.ticker.toUpperCase();
-  const { key: lookbackKey, days: lookbackDays } = resolveLookback(req.query.lookback);
-  const cacheKey = `backtest_us_${ticker}_${lookbackKey}`;
-  const cached = cache.get(cacheKey);
-  if (cached) return res.json(cached);
-
   try {
-    const days = 1260; // 약 5년치 일봉 (신고가 워밍업 이후에도 충분한 검증 기간 확보 위해 확장)
-    const [stockOhlcv, indexOhlcv] = await Promise.all([
-      usSource.fetchOHLCV(ticker, days),
-      usSource.fetchIndexOHLCV(days),
-    ]);
-    if (!stockOhlcv.closes.length) {
-      return res.status(404).json({ error: `${ticker} 데이터를 찾을 수 없습니다 (티커 확인 필요)` });
-    }
-
-    // 종목과 지수의 날짜 길이가 다를 수 있어 뒤쪽(최근) 기준으로 짧은 쪽에 맞춤
-    const len = Math.min(stockOhlcv.closes.length, indexOhlcv.closes.length);
-    const trim = (arr) => arr.slice(-len);
-
-    const result = runBreakoutBacktest({
-      dates: trim(stockOhlcv.dates),
-      opens: trim(stockOhlcv.opens),
-      highs: trim(stockOhlcv.highs),
-      lows: trim(stockOhlcv.lows),
-      closes: trim(stockOhlcv.closes),
-      volumes: trim(stockOhlcv.volumes),
-      indexCloses: trim(indexOhlcv.closes),
-      lookback: lookbackDays,
-    });
-
-    const payload = { ticker, lookback: lookbackKey, periodDays: len, ...result };
-    cache.set(cacheKey, payload, 60 * 60); // 1시간 캐시
+    const payload = await runSingleBacktest(ticker, req.query.lookback);
     res.json(payload);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message });
+    res.status(err.statusCode || 500).json({ error: err.message });
   }
+});
+
+/**
+ * 여러 종목 백테스트 비교: /api/backtest/us/compare?tickers=PLTR,AME,MSFT&lookback=36w
+ */
+app.get('/api/backtest/us/compare/batch', async (req, res) => {
+  const tickersParam = (req.query.tickers || '').trim();
+  if (!tickersParam) {
+    return res.status(400).json({ error: 'tickers 쿼리 파라미터가 필요합니다 (예: ?tickers=PLTR,AME)' });
+  }
+  const tickers = [...new Set(tickersParam.split(',').map(t => t.trim().toUpperCase()).filter(Boolean))].slice(0, 10);
+
+  const results = await runBatched(tickers, async (ticker) => {
+    try {
+      const payload = await runSingleBacktest(ticker, req.query.lookback);
+      return { ticker, ok: true, ...payload };
+    } catch (err) {
+      return { ticker, ok: false, error: err.message };
+    }
+  }, 5);
+
+  // 요청한 순서대로 정렬
+  const ordered = tickers.map(t => results.find(r => r.ticker === t)).filter(Boolean);
+  res.json({ lookback: resolveLookback(req.query.lookback).key, results: ordered });
 });
 
 app.get('/api/lookback-options', (req, res) => {

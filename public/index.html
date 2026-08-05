@@ -139,9 +139,9 @@
 
 <main>
   <div id="backtestControls" class="backtest-controls" style="display:none;">
-    <input id="backtestTicker" placeholder="예: PLTR" value="PLTR" />
+    <input id="backtestTicker" placeholder="예: PLTR 또는 PLTR,AME" value="PLTR" style="width:220px;" />
     <button id="backtestRun">백테스트 실행</button>
-    <span style="font-family: var(--mono); font-size: 11px; color: var(--muted);">미국 주식 티커만 지원 (최근 약 3년 일봉 기준)</span>
+    <span style="font-family: var(--mono); font-size: 11px; color: var(--muted);">미국 주식 티커만 지원 · 쉼표로 구분해 여러 개 입력하면 비교표로 표시 (예: PLTR,AME)</span>
   </div>
   <div class="meta" id="meta">불러오는 중...</div>
   <div id="content"><div class="loading">데이터 불러오는 중...</div></div>
@@ -195,27 +195,85 @@ async function load(market) {
 }
 
 async function runBacktest() {
-  const ticker = document.getElementById('backtestTicker').value.trim().toUpperCase();
-  if (!ticker) return;
+  const rawInput = document.getElementById('backtestTicker').value.trim().toUpperCase();
+  if (!rawInput) return;
+  const tickers = [...new Set(rawInput.split(',').map(t => t.trim()).filter(Boolean))];
+  if (!tickers.length) return;
+
   const btn = document.getElementById('backtestRun');
   btn.disabled = true;
-  document.getElementById('content').innerHTML = '<div class="loading">백테스트 실행 중... (5년치 일봉 계산이라 조금 걸려요)</div>';
+  const lookback = document.getElementById('lookbackSelect').value;
+
+  if (tickers.length === 1) {
+    document.getElementById('content').innerHTML = '<div class="loading">백테스트 실행 중... (5년치 일봉 계산이라 조금 걸려요)</div>';
+    try {
+      const res = await fetch(`/api/backtest/us/${encodeURIComponent(tickers[0])}?lookback=${lookback}`);
+      if (!res.ok) {
+        let detail = `상태코드 ${res.status}`;
+        try { const b = await res.json(); if (b.error) detail = b.error; } catch (_) {}
+        throw new Error(detail);
+      }
+      const data = await res.json();
+      renderBacktest(data);
+      document.getElementById('meta').textContent = `${data.ticker} · 최근 ${data.periodDays}거래일 · 기준: ${LOOKBACK_LABEL[data.lookback] || data.lookback}`;
+    } catch (err) {
+      document.getElementById('content').innerHTML = `<div class="error">백테스트 실패: ${err.message}</div>`;
+    } finally {
+      btn.disabled = false;
+    }
+    return;
+  }
+
+  // 복수 티커 → 비교 모드
+  document.getElementById('content').innerHTML = `<div class="loading">${tickers.length}개 종목 백테스트 비교 실행 중... 시간이 좀 걸려요</div>`;
   try {
-    const lookback = document.getElementById('lookbackSelect').value;
-    const res = await fetch(`/api/backtest/us/${encodeURIComponent(ticker)}?lookback=${lookback}`);
+    const res = await fetch(`/api/backtest/us/compare/batch?tickers=${encodeURIComponent(tickers.join(','))}&lookback=${lookback}`);
     if (!res.ok) {
       let detail = `상태코드 ${res.status}`;
       try { const b = await res.json(); if (b.error) detail = b.error; } catch (_) {}
       throw new Error(detail);
     }
     const data = await res.json();
-    renderBacktest(data);
-    document.getElementById('meta').textContent = `${data.ticker} · 최근 ${data.periodDays}거래일 · 기준: ${LOOKBACK_LABEL[data.lookback] || data.lookback}`;
+    renderBacktestCompare(data);
+    document.getElementById('meta').textContent = `${tickers.length}개 종목 비교 · 기준: ${LOOKBACK_LABEL[data.lookback] || data.lookback}`;
   } catch (err) {
-    document.getElementById('content').innerHTML = `<div class="error">백테스트 실패: ${err.message}</div>`;
+    document.getElementById('content').innerHTML = `<div class="error">비교 백테스트 실패: ${err.message}</div>`;
   } finally {
     btn.disabled = false;
   }
+}
+
+function renderBacktestCompare(data) {
+  const rows = data.results.map(r => {
+    if (!r.ok) {
+      return `<tr><td class="name">${r.ticker}</td><td colspan="6" class="error" style="text-align:left;">${r.error}</td></tr>`;
+    }
+    const s = r.summary;
+    if (!r.trades || !r.trades.length) {
+      return `<tr><td class="name">${r.ticker}</td><td colspan="6" style="color:var(--muted);">${s.message || '거래 없음'}</td></tr>`;
+    }
+    return `
+      <tr>
+        <td class="name">${r.ticker}</td>
+        <td>${s.totalTrades}회</td>
+        <td>${s.winRate}%</td>
+        <td>${s.profitFactor ?? '-'}</td>
+        <td class="${s.compoundedReturnPct >= 0 ? 'pos' : 'neg'}">${s.compoundedReturnPct >= 0 ? '+' : ''}${s.compoundedReturnPct}%</td>
+        <td class="neg">${s.maxDrawdownPct}%</td>
+        <td style="color:var(--muted); font-size:11px;">비용차감 -${s.tradingCostDragPct}%</td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('content').innerHTML = `
+    <table>
+      <thead>
+        <tr><th>종목</th><th>거래횟수</th><th>승률</th><th>손익비</th><th>복리수익률</th><th>MDD</th><th>거래비용</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:10px;">
+      상세 거래내역을 보려면 티커 하나만 입력해서 다시 실행하세요.
+    </div>`;
 }
 
 function renderBacktest(data) {
@@ -230,7 +288,7 @@ function renderBacktest(data) {
     ['평균 수익(승)', '+' + s.avgWinPct + '%'],
     ['평균 손실(패)', s.avgLossPct + '%'],
     ['손익비', s.profitFactor ?? '-'],
-    ['순차 복리수익률', (s.compoundedReturnPct >= 0 ? '+' : '') + s.compoundedReturnPct + '%'],
+    ['순수익 복리수익률', (s.compoundedReturnPct >= 0 ? '+' : '') + s.compoundedReturnPct + '%'],
   ];
   const cardsHtml = cards.map(([label, value]) => `
     <div class="summary-card">
@@ -239,25 +297,28 @@ function renderBacktest(data) {
     </div>`).join('');
 
   const reasonLabel = { stop_loss: '손절', regime_down: '국면전환청산', max_hold: '기간만료청산', still_open: '보유중(미청산)' };
+  const basisLabel = { base_low: '베이스', percent: '%기준' };
   const rows = data.trades.map(t => `
     <tr>
       <td>${t.entryDate}</td>
       <td>${t.entryPrice}</td>
       <td>${t.exitDate}</td>
       <td>${t.exitPrice}</td>
-      <td class="${t.returnPct >= 0 ? 'pos' : 'neg'}">${t.returnPct >= 0 ? '+' : ''}${t.returnPct}%</td>
+      <td class="${t.returnPct >= 0 ? 'pos' : 'neg'}">${t.returnPct >= 0 ? '+' : ''}${t.returnPct}% <span style="color:var(--muted); font-size:10px;">(비용전 ${t.grossReturnPct >= 0 ? '+' : ''}${t.grossReturnPct}%)</span></td>
       <td>${t.holdDays}일</td>
       <td><span class="reason-tag">${reasonLabel[t.reason] || t.reason}</span></td>
+      <td style="color:var(--muted); font-size:11px;">${basisLabel[t.stopLossBasis] || '-'}</td>
     </tr>`).join('');
 
   document.getElementById('content').innerHTML = `
     <div class="summary-cards">${cardsHtml}</div>
     <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:10px;">
       최대낙폭(MDD): <span class="neg">${s.maxDrawdownPct}%</span> ·
+      거래비용 반영 전 복리수익률: ${s.grossCompoundedReturnPct}% (거래비용으로 -${s.tradingCostDragPct}%p 차감) ·
       청산 사유: ${Object.entries(s.exitReasonCounts).map(([k,v]) => `${reasonLabel[k]||k} ${v}회`).join(' · ')}
     </div>
     <table>
-      <thead><tr><th>진입일</th><th>진입가</th><th>청산일</th><th>청산가</th><th>수익률</th><th>보유기간</th><th>청산사유</th></tr></thead>
+      <thead><tr><th>진입일</th><th>진입가</th><th>청산일</th><th>청산가</th><th>수익률(순)</th><th>보유기간</th><th>청산사유</th><th>손절기준</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
@@ -299,6 +360,7 @@ function renderTable(stocks, market) {
   const rows = stocks.map(s => `
     <tr>
       <td class="name">${s.name} <span style="color:var(--muted)">${s.ticker}</span></td>
+      <td style="color:var(--muted); font-size:12px;">${s.sector || '-'}</td>
       <td class="score score-${s.score}">${s.score}/5</td>
       <td>
         <span class="badge ${s.checklist.marketRegimeOk ? 'pass' : 'fail'}" title="시장국면"></span>
@@ -311,7 +373,10 @@ function renderTable(stocks, market) {
       <td>${s.volumeSurgeRatio ? s.volumeSurgeRatio.toFixed(2) + 'x' : '-'}</td>
       <td>${s.lastClose?.toLocaleString() ?? '-'}</td>
       <td>${s.breakoutLevel ? s.breakoutLevel.toLocaleString(undefined, {maximumFractionDigits:2}) : '-'}</td>
-      <td>${s.stopLossLevel ? s.stopLossLevel.toLocaleString(undefined, {maximumFractionDigits:2}) : '-'}</td>
+      <td title="${s.stopLossBasis === 'base_low' ? '베이스 하단 기준' : '% 기준(베이스 하단이 너무 멀 때 대체)'}">
+        ${s.stopLossLevel ? s.stopLossLevel.toLocaleString(undefined, {maximumFractionDigits:2}) : '-'}
+        ${s.stopLossBasis ? `<span style="color:var(--muted); font-size:10px;">${s.stopLossBasis === 'base_low' ? '(베이스)' : '(%)'}</span>` : ''}
+      </td>
       <td>${fmtTier(s.positionSizeFactor)}</td>
       <td class="${s.stockStrengthPct >= 75 ? 'pos' : s.stockStrengthPct <= 25 ? 'neg' : ''}">${s.stockStrengthPct}%</td>
     </tr>`).join('');
@@ -320,7 +385,7 @@ function renderTable(stocks, market) {
     <table>
       <thead>
         <tr>
-          <th>종목</th><th>점수</th><th>체크리스트</th><th>고점대비</th><th>거래량비</th>
+          <th>종목</th><th>섹터</th><th>점수</th><th>체크리스트</th><th>고점대비</th><th>거래량비</th>
           <th>현재가</th><th>돌파선</th><th>손절선</th><th>권장기준</th><th>개별강도</th>
         </tr>
       </thead>
