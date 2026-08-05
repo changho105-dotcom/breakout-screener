@@ -32,11 +32,15 @@ GET /api/screen/us
 ```
 
 ## 미국장 관련 참고
+- 종목 유니버스를 S&P500 단독에서 **다우30 + 나스닥100 + S&P500** 통합(중복 제거)으로 확장
+  (다우30/나스닥100 리스트: yfiua.github.io/index-constituents, S&P500+섹터: datasets/s-and-p-500-companies)
+- 지수는 S&P500(^GSPC)/다우(^DJI)/나스닥종합(^IXIC) 3개를 각각 계산해서 화면에 게이지로 표시
+- 다만 개별 종목의 RS·포지션비중 계산 기준 지수는 **S&P500 하나로 통일**했습니다(다우·나스닥은 참고용 게이지). 종목마다 소속 지수 기준으로 따로 계산하려면 추가 작업이 필요해서 지금은 단순화한 상태 - 필요하시면 다음 단계에서 분리 가능
 - OHLCV 소스를 stooq.com에서 Yahoo Finance Chart API로 교체함
   (stooq가 Railway 같은 클라우드 IP를 차단하는 것으로 보여서 교체)
-- 요청량을 줄이기 위해 MVP는 시가총액 상위 150개만 스캔합니다
+- 요청량을 줄이기 위해 MVP는 최종 250개 종목까지만 스캔합니다 (다우30·나스닥100은 항상 포함, 나머지는 S&P500으로 채움)
   (환경변수 `US_UNIVERSE_LIMIT`로 조정 가능, Railway → Variables에서 설정)
-- Yahoo Finance도 언젠가 막히거나 형식이 바뀔 수 있음 - 이 경우
+- Yahoo Finance나 yfiua 데이터셋도 언젠가 막히거나 형식이 바뀔 수 있음 - 이 경우
   `/api/screen/us` 에러 메시지에 원인이 그대로 표시됩니다
 
 ## 미구현 (다음 단계에서 추가)

@@ -77,8 +77,15 @@ async function screenUS() {
   if (cached) return cached;
 
   const stockList = await usSource.fetchStockList();
-  const indexOhlcv = await usSource.fetchIndexOHLCV();
-  const regime = classifyMarketRegime(indexOhlcv.closes);
+  const allIndexOhlcv = await usSource.fetchAllIndexOHLCV();
+  const regime = {
+    SP500: classifyMarketRegime(allIndexOhlcv.SP500.closes),
+    DOW: classifyMarketRegime(allIndexOhlcv.DOW.closes),
+    NASDAQ: classifyMarketRegime(allIndexOhlcv.NASDAQ.closes),
+  };
+  // 개별 종목 평가(RS·포지션비중)는 S&P500을 대표 지수로 사용 (다우/나스닥은 화면에 참고용 게이지로만 표시)
+  const primaryIndexCloses = allIndexOhlcv.SP500.closes;
+  const primaryRegime = regime.SP500;
 
   const withOhlcv = await runBatched(stockList, async (stock) => {
     const ohlcv = await usSource.fetchOHLCV(stock.ticker);
@@ -107,8 +114,8 @@ async function screenUS() {
       highs: ohlcv.highs,
       closes: ohlcv.closes,
       volumes: ohlcv.volumes,
-      indexCloses: indexOhlcv.closes,
-      indexRegime: regime,
+      indexCloses: primaryIndexCloses,
+      indexRegime: primaryRegime,
       sectorAvgReturn: sectorAvg[stock.sector] ?? null,
       market: 'US',
     })
@@ -116,7 +123,7 @@ async function screenUS() {
 
   const result = {
     updatedAt: new Date().toISOString(),
-    regime: { US: regime },
+    regime,
     sectorAvg,
     stocks: evaluated.sort((a, b) => b.score - a.score),
   };
