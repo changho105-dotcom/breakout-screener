@@ -93,6 +93,7 @@ async function screenKR(lookbackKey) {
     if (!ohlcv.closes.length) return null;
     return { stock, ohlcv, sector: sectorMap[stock.ticker] || null };
   }, 8);
+  const fetchFailures = stockList.length - withOhlcv.length;
 
   const sectorAvg = computeSectorAvg(withOhlcv.map(({ sector, ohlcv }) => ({ sector, closes: ohlcv.closes })), 60);
   const rsRatings = computeRsRatings(withOhlcv.map(({ stock, ohlcv }) => ({ key: stock.ticker, closes: ohlcv.closes })), lookbackDays);
@@ -124,6 +125,7 @@ async function screenKR(lookbackKey) {
     sectorAvg,
     sectorCoverage: `${Object.keys(sectorMap).length}종목 매칭`, // 업종 크롤링이 실패하면 0종목으로 나타남
     excludedForLiquidity, // 유동성 미달로 결과에서 제외된 종목 수
+    fetchFailures, // 데이터 조회 자체가 실패한 종목 수 (소스 이슈 감지용)
     stocks: liquidStocks.sort((a, b) => b.score - a.score),
   };
   cache.set(cacheKey, result);
@@ -152,6 +154,7 @@ async function screenUS(lookbackKey) {
     if (!ohlcv.closes.length) return null;
     return { stock, ohlcv };
   }, 10);
+  const fetchFailures = stockList.length - withOhlcv.length;
 
   const sectorAvg = computeSectorAvg(withOhlcv.map(({ stock, ohlcv }) => ({ sector: stock.sector, closes: ohlcv.closes })), 60);
   const rsRatings = computeRsRatings(withOhlcv.map(({ stock, ohlcv }) => ({ key: stock.ticker, closes: ohlcv.closes })), lookbackDays);
@@ -182,6 +185,7 @@ async function screenUS(lookbackKey) {
     regime,
     sectorAvg,
     excludedForLiquidity,
+    fetchFailures,
     stocks: liquidStocks.sort((a, b) => b.score - a.score),
   };
   cache.set(cacheKey, result);
@@ -209,21 +213,29 @@ app.get('/api/screen/us', async (req, res) => {
 });
 
 /**
- * 단일 종목 백테스트 실행 (단일/비교 엔드포인트 공용 로직)
+ * 단일 종목 백테스트 실행 (US/KR 공용, 단일/비교/기간비교 엔드포인트 공용 로직)
+ * region: 'us' | 'kr'.  krMarket: 'KOSPI' | 'KOSDAQ' (region==='kr'일 때만 사용, 지수 비교 기준)
  */
-async function runSingleBacktest(ticker, lookbackKey) {
+async function runSingleBacktest(region, ticker, lookbackKey, krMarket) {
   const { key, days: lookbackDays } = resolveLookback(lookbackKey);
-  const cacheKey = `backtest_us_${ticker}_${key}`;
+  const marketTag = region === 'kr' ? (krMarket === 'KOSDAQ' ? 'KOSDAQ' : 'KOSPI') : 'US';
+  const cacheKey = `backtest_${region}_${ticker}_${marketTag}_${key}`;
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  const days = 1260; // 약 5년치 일봉 (신고가 워밍업 이후에도 충분한 검증 기간 확보 위해 확장)
-  const [stockOhlcv, indexOhlcv] = await Promise.all([
-    usSource.fetchOHLCV(ticker, days),
-    usSource.fetchIndexOHLCV(days),
-  ]);
+  const days = region === 'kr' ? 1500 : 1260; // 국내는 영업일 기준으로 좀 더 넉넉히 (약 6년)
+  const [stockOhlcv, indexOhlcv] = region === 'kr'
+    ? await Promise.all([
+        krSource.fetchOHLCV(ticker, days),
+        krSource.fetchIndexOHLCV(marketTag, days),
+      ])
+    : await Promise.all([
+        usSource.fetchOHLCV(ticker, days),
+        usSource.fetchIndexOHLCV(days),
+      ]);
+
   if (!stockOhlcv.closes.length) {
-    const err = new Error(`${ticker} 데이터를 찾을 수 없습니다 (티커 확인 필요)`);
+    const err = new Error(`${ticker} 데이터를 찾을 수 없습니다 (티커 확인 필요${region === 'kr' ? ', 코스피/코스닥 선택도 확인해주세요' : ''})`);
     err.statusCode = 404;
     throw err;
   }
@@ -243,7 +255,7 @@ async function runSingleBacktest(ticker, lookbackKey) {
     lookback: lookbackDays,
   });
 
-  const payload = { ticker, lookback: key, periodDays: len, ...result };
+  const payload = { ticker, region, market: region === 'kr' ? marketTag : 'US', lookback: key, periodDays: len, ...result };
   cache.set(cacheKey, payload, 60 * 60); // 1시간 캐시
   return payload;
 }
@@ -251,7 +263,19 @@ async function runSingleBacktest(ticker, lookbackKey) {
 app.get('/api/backtest/us/:ticker', async (req, res) => {
   const ticker = req.params.ticker.toUpperCase();
   try {
-    const payload = await runSingleBacktest(ticker, req.query.lookback);
+    const payload = await runSingleBacktest('us', ticker, req.query.lookback);
+    res.json(payload);
+  } catch (err) {
+    console.error(err);
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/backtest/kr/:ticker', async (req, res) => {
+  const ticker = req.params.ticker;
+  const krMarket = (req.query.market || 'KOSPI').toUpperCase();
+  try {
+    const payload = await runSingleBacktest('kr', ticker, req.query.lookback, krMarket);
     res.json(payload);
   } catch (err) {
     console.error(err);
@@ -260,7 +284,7 @@ app.get('/api/backtest/us/:ticker', async (req, res) => {
 });
 
 /**
- * 여러 종목 백테스트 비교: /api/backtest/us/compare?tickers=PLTR,AME,MSFT&lookback=36w
+ * 여러 종목 백테스트 비교: /api/backtest/us/compare/batch?tickers=PLTR,AME,MSFT&lookback=36w
  */
 app.get('/api/backtest/us/compare/batch', async (req, res) => {
   const tickersParam = (req.query.tickers || '').trim();
@@ -271,16 +295,62 @@ app.get('/api/backtest/us/compare/batch', async (req, res) => {
 
   const results = await runBatched(tickers, async (ticker) => {
     try {
-      const payload = await runSingleBacktest(ticker, req.query.lookback);
+      const payload = await runSingleBacktest('us', ticker, req.query.lookback);
       return { ticker, ok: true, ...payload };
     } catch (err) {
       return { ticker, ok: false, error: err.message };
     }
   }, 5);
 
-  // 요청한 순서대로 정렬
   const ordered = tickers.map(t => results.find(r => r.ticker === t)).filter(Boolean);
   res.json({ lookback: resolveLookback(req.query.lookback).key, results: ordered });
+});
+
+app.get('/api/backtest/kr/compare/batch', async (req, res) => {
+  const tickersParam = (req.query.tickers || '').trim();
+  if (!tickersParam) {
+    return res.status(400).json({ error: 'tickers 쿼리 파라미터가 필요합니다 (예: ?tickers=005930,000660)' });
+  }
+  const krMarket = (req.query.market || 'KOSPI').toUpperCase();
+  const tickers = [...new Set(tickersParam.split(',').map(t => t.trim()).filter(Boolean))].slice(0, 10);
+
+  const results = await runBatched(tickers, async (ticker) => {
+    try {
+      const payload = await runSingleBacktest('kr', ticker, req.query.lookback, krMarket);
+      return { ticker, ok: true, ...payload };
+    } catch (err) {
+      return { ticker, ok: false, error: err.message };
+    }
+  }, 5);
+
+  const ordered = tickers.map(t => results.find(r => r.ticker === t)).filter(Boolean);
+  res.json({ lookback: resolveLookback(req.query.lookback).key, results: ordered });
+});
+
+/**
+ * 기준 기간(60일/120일/36주/52주) 4개를 한 종목에 대해 한 번에 비교
+ * /api/backtest/us/lookback-compare/PLTR  또는 /api/backtest/kr/lookback-compare/005930?market=KOSPI
+ */
+app.get('/api/backtest/:region/lookback-compare/:ticker', async (req, res) => {
+  const { region } = req.params;
+  if (region !== 'us' && region !== 'kr') {
+    return res.status(400).json({ error: 'region은 us 또는 kr이어야 합니다' });
+  }
+  const ticker = region === 'us' ? req.params.ticker.toUpperCase() : req.params.ticker;
+  const krMarket = (req.query.market || 'KOSPI').toUpperCase();
+  const lookbackKeys = Object.keys(LOOKBACK_OPTIONS);
+
+  const results = await runBatched(lookbackKeys, async (lbKey) => {
+    try {
+      const payload = await runSingleBacktest(region, ticker, lbKey, krMarket);
+      return { lookback: lbKey, ok: true, ...payload };
+    } catch (err) {
+      return { lookback: lbKey, ok: false, error: err.message };
+    }
+  }, 4);
+
+  const ordered = lookbackKeys.map(k => results.find(r => r.lookback === k)).filter(Boolean);
+  res.json({ ticker, region, results: ordered });
 });
 
 app.get('/api/chart/kr/:ticker', async (req, res) => {

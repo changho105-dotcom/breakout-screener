@@ -193,17 +193,28 @@
 
 <main>
   <div id="backtestControls" class="backtest-controls" style="display:none;">
-    <input id="backtestTicker" placeholder="예: PLTR 또는 PLTR,AME" value="PLTR" style="width:220px;" />
+    <select id="backtestRegion" class="lookback-select">
+      <option value="us">미국</option>
+      <option value="kospi">코스피</option>
+      <option value="kosdaq">코스닥</option>
+    </select>
+    <input id="backtestTicker" placeholder="예: PLTR 또는 PLTR,AME" value="PLTR" style="width:200px;" />
     <button id="backtestRun">백테스트 실행</button>
-    <span style="font-family: var(--mono); font-size: 11px; color: var(--muted);">미국 주식 티커만 지원 · 쉼표로 구분해 여러 개 입력하면 비교표로 표시 (예: PLTR,AME)</span>
+    <button id="backtestLookbackCompare" style="background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px 14px; font-family:var(--mono); font-size:12px; cursor:pointer;">기간별 비교</button>
+    <span style="font-family: var(--mono); font-size: 11px; color: var(--muted);">쉼표로 구분해 여러 티커 입력하면 비교표 (코스피/코스닥은 종목코드로, 예: 005930)</span>
   </div>
   <div class="meta" id="meta">불러오는 중...</div>
+  <div id="filterBar" style="margin-bottom:10px; display:none;">
+    <select id="sectorFilter" class="lookback-select">
+      <option value="">섹터 전체</option>
+    </select>
+  </div>
   <div id="content"><div class="loading">데이터 불러오는 중...</div></div>
   <div class="checklist-key" id="checklistKey">
     ● 체크리스트(점수 반영): 시장국면 · 신고가근접(-20%이내) · 거래량급증 · 전고점돌파 · 트렌드템플릿(이평선정렬) · RS Rating(70+) — 점수(score) 분모는 데이터 충분 여부에 따라 종목마다 다를 수 있음. 기준 기간은 상단 드롭다운으로 변경 가능<br/>
     ● 유동성 미달 종목은 체크리스트가 아니라 결과 목록에서 아예 제외됩니다<br/>
-    ● 권장기준(상/중/하) = 시장 전체 국면 기준 신규진입 강도 · 개별강도(%) = 시장국면과 무관하게 이 종목 자체가 조건을 얼마나 충족하는지<br/>
-    ● 저점대비(52주 저점 대비 상승률)와 섹터강도는 점수에는 반영되지 않는 참고용 정보입니다. RS Rating은 현재 화면의 종목군 안에서의 백분위라 백테스트(단일 종목)에는 반영되지 않습니다.
+    ● 권장기준(상/중/하) = 시장 전체 국면 기준 신규진입 강도. RS Rating은 현재 화면의 종목군 안에서의 백분위라 백테스트(단일 종목)에는 반영되지 않습니다<br/>
+    ● 표 헤더를 클릭하면 그 기준으로 정렬됩니다 (다시 클릭하면 오름차순/내림차순 전환)
   </div>
 </main>
 
@@ -214,6 +225,9 @@ const REGIME_CLASS = { DOWN: 'down', PULLBACK: 'pullback', WEAK_UP: 'weak', STRO
 const LOOKBACK_LABEL = { '60d': '60일', '120d': '120일', '36w': '36주', '52w': '52주' };
 
 let currentMarket = 'kr';
+let allStocks = [];
+let currentSectorFilter = '';
+let currentSort = { key: 'score', dir: 'desc' };
 
 async function load(market) {
   currentMarket = market;
@@ -242,28 +256,42 @@ async function load(market) {
     }
     const data = await res.json();
     renderRegime(data.regime);
-    renderTable(data.stocks, market);
-    document.getElementById('meta').textContent = `업데이트: ${new Date(data.updatedAt).toLocaleString('ko-KR')} · 종목 수: ${data.stocks.length} · 기준: ${LOOKBACK_LABEL[data.lookback] || data.lookback}${data.excludedForLiquidity ? ` · 유동성 미달 ${data.excludedForLiquidity}종목 제외됨` : ''}`;
+    allStocks = data.stocks;
+    currentSectorFilter = '';
+    currentSort = { key: 'score', dir: 'desc' };
+    renderSectorFilter(allStocks);
+    applyFiltersAndSort();
+    const fetchFailNote = data.fetchFailures ? ` · 데이터 조회 실패 ${data.fetchFailures}종목(소스 이슈 가능)` : '';
+    document.getElementById('meta').textContent = `업데이트: ${new Date(data.updatedAt).toLocaleString('ko-KR')} · 종목 수: ${data.stocks.length} · 기준: ${LOOKBACK_LABEL[data.lookback] || data.lookback}${data.excludedForLiquidity ? ` · 유동성 미달 ${data.excludedForLiquidity}종목 제외됨` : ''}${fetchFailNote}`;
   } catch (err) {
     document.getElementById('content').innerHTML = `<div class="error">불러오기 실패: ${err.message}</div>`;
     document.getElementById('meta').textContent = '';
   }
 }
 
+function getBacktestRegionParams() {
+  const regionSel = document.getElementById('backtestRegion').value; // 'us' | 'kospi' | 'kosdaq'
+  const region = regionSel === 'us' ? 'us' : 'kr';
+  const krMarket = regionSel === 'kosdaq' ? 'KOSDAQ' : 'KOSPI';
+  return { region, krMarket };
+}
+
 async function runBacktest() {
-  const rawInput = document.getElementById('backtestTicker').value.trim().toUpperCase();
+  const rawInput = document.getElementById('backtestTicker').value.trim();
   if (!rawInput) return;
-  const tickers = [...new Set(rawInput.split(',').map(t => t.trim()).filter(Boolean))];
+  const { region, krMarket } = getBacktestRegionParams();
+  const tickers = [...new Set(rawInput.split(',').map(t => t.trim()).map(t => region === 'us' ? t.toUpperCase() : t).filter(Boolean))];
   if (!tickers.length) return;
 
   const btn = document.getElementById('backtestRun');
   btn.disabled = true;
   const lookback = document.getElementById('lookbackSelect').value;
+  const marketQS = region === 'kr' ? `&market=${krMarket}` : '';
 
   if (tickers.length === 1) {
-    document.getElementById('content').innerHTML = '<div class="loading">백테스트 실행 중... (5년치 일봉 계산이라 조금 걸려요)</div>';
+    document.getElementById('content').innerHTML = '<div class="loading">백테스트 실행 중... (다년치 일봉 계산이라 조금 걸려요)</div>';
     try {
-      const res = await fetch(`/api/backtest/us/${encodeURIComponent(tickers[0])}?lookback=${lookback}`);
+      const res = await fetch(`/api/backtest/${region}/${encodeURIComponent(tickers[0])}?lookback=${lookback}${marketQS}`);
       if (!res.ok) {
         let detail = `상태코드 ${res.status}`;
         try { const b = await res.json(); if (b.error) detail = b.error; } catch (_) {}
@@ -283,7 +311,7 @@ async function runBacktest() {
   // 복수 티커 → 비교 모드
   document.getElementById('content').innerHTML = `<div class="loading">${tickers.length}개 종목 백테스트 비교 실행 중... 시간이 좀 걸려요</div>`;
   try {
-    const res = await fetch(`/api/backtest/us/compare/batch?tickers=${encodeURIComponent(tickers.join(','))}&lookback=${lookback}`);
+    const res = await fetch(`/api/backtest/${region}/compare/batch?tickers=${encodeURIComponent(tickers.join(','))}&lookback=${lookback}${marketQS}`);
     if (!res.ok) {
       let detail = `상태코드 ${res.status}`;
       try { const b = await res.json(); if (b.error) detail = b.error; } catch (_) {}
@@ -297,6 +325,67 @@ async function runBacktest() {
   } finally {
     btn.disabled = false;
   }
+}
+
+async function runLookbackCompare() {
+  const rawInput = document.getElementById('backtestTicker').value.trim();
+  if (!rawInput) return;
+  const { region, krMarket } = getBacktestRegionParams();
+  const ticker = (rawInput.split(',')[0] || '').trim();
+  if (!ticker) return;
+  const marketQS = region === 'kr' ? `&market=${krMarket}` : '';
+
+  const btn = document.getElementById('backtestLookbackCompare');
+  btn.disabled = true;
+  document.getElementById('content').innerHTML = '<div class="loading">60일/120일/36주/52주 기준 4개를 한 번에 비교 중... 시간이 좀 걸려요</div>';
+  try {
+    const res = await fetch(`/api/backtest/${region}/lookback-compare/${encodeURIComponent(ticker)}?${marketQS.replace(/^&/, '')}`);
+    if (!res.ok) {
+      let detail = `상태코드 ${res.status}`;
+      try { const b = await res.json(); if (b.error) detail = b.error; } catch (_) {}
+      throw new Error(detail);
+    }
+    const data = await res.json();
+    renderLookbackCompare(data);
+    document.getElementById('meta').textContent = `${data.ticker} · 기준 기간별 비교`;
+  } catch (err) {
+    document.getElementById('content').innerHTML = `<div class="error">기간별 비교 실패: ${err.message}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderLookbackCompare(data) {
+  const rows = data.results.map(r => {
+    const label = LOOKBACK_LABEL[r.lookback] || r.lookback;
+    if (!r.ok) {
+      return `<tr><td class="name">${label}</td><td colspan="6" class="error" style="text-align:left;">${r.error}</td></tr>`;
+    }
+    const s = r.summary;
+    if (!r.trades || !r.trades.length) {
+      return `<tr><td class="name">${label}</td><td colspan="6" style="color:var(--muted);">${s.message || '거래 없음'}</td></tr>`;
+    }
+    return `
+      <tr>
+        <td class="name">${label}</td>
+        <td>${s.totalTrades}회</td>
+        <td>${s.winRate}%</td>
+        <td>${s.profitFactor ?? '-'}</td>
+        <td class="${s.compoundedReturnPct >= 0 ? 'pos' : 'neg'}">${s.compoundedReturnPct >= 0 ? '+' : ''}${s.compoundedReturnPct}%</td>
+        <td class="neg">${s.maxDrawdownPct}%</td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('content').innerHTML = `
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>기준기간</th><th>거래횟수</th><th>승률</th><th>손익비</th><th>복리수익률</th><th>MDD</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </div>
+    <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:10px;">
+      ${data.ticker} 한 종목을 60일/120일/36주/52주 기준으로 각각 백테스트한 결과입니다.
+    </div>`;
 }
 
 function renderBacktestCompare(data) {
@@ -368,6 +457,22 @@ function renderBacktest(data) {
       <td style="color:var(--muted); font-size:11px;">${basisLabel[t.stopLossBasis] || '-'}</td>
     </tr>`).join('');
 
+  const yearlyRows = (s.yearlyBreakdown || []).map(y => `
+    <tr>
+      <td>${y.year}</td>
+      <td>${y.trades}회</td>
+      <td>${y.winRate}%</td>
+      <td class="${y.compoundedReturnPct >= 0 ? 'pos' : 'neg'}">${y.compoundedReturnPct >= 0 ? '+' : ''}${y.compoundedReturnPct}%</td>
+    </tr>`).join('');
+  const yearlyTable = yearlyRows ? `
+    <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin:16px 0 6px;">연도별 성과 (특정 해에 결과가 쏠려있진 않은지 참고용 — 정식 워크포워드 검증은 아님)</div>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>연도</th><th>거래횟수</th><th>승률</th><th>복리수익률</th></tr></thead>
+      <tbody>${yearlyRows}</tbody>
+    </table>
+    </div>` : '';
+
   document.getElementById('content').innerHTML = `
     <div class="summary-cards">${cardsHtml}</div>
     <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:10px;">
@@ -380,7 +485,8 @@ function renderBacktest(data) {
       <thead><tr><th>진입일</th><th>진입가</th><th>청산일</th><th>청산가</th><th>수익률(순)</th><th>보유기간</th><th>청산사유</th><th>손절기준</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    </div>`;
+    </div>
+    ${yearlyTable}`;
 }
 
 function renderRegime(regime) {
@@ -412,6 +518,48 @@ function fmtTier(positionSizeFactor) {
   return '<span class="neg" style="font-weight:700;">하</span>';
 }
 
+function renderSectorFilter(stocks) {
+  const bar = document.getElementById('filterBar');
+  const select = document.getElementById('sectorFilter');
+  const sectors = [...new Set(stocks.map(s => s.sector).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko'));
+  if (!sectors.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  select.innerHTML = '<option value="">섹터 전체</option>' + sectors.map(s => `<option value="${s}">${s}</option>`).join('');
+  select.value = currentSectorFilter;
+}
+
+function applyFiltersAndSort() {
+  let filtered = currentSectorFilter ? allStocks.filter(s => s.sector === currentSectorFilter) : allStocks;
+  const { key, dir } = currentSort;
+  const sorted = [...filtered].sort((a, b) => {
+    let va = a[key], vb = b[key];
+    const aMissing = va === null || va === undefined;
+    const bMissing = vb === null || vb === undefined;
+    if (aMissing && bMissing) return 0;
+    if (aMissing) return 1; // 값 없는 건 항상 뒤로
+    if (bMissing) return -1;
+    if (typeof va === 'string') return dir === 'desc' ? vb.localeCompare(va, 'ko') : va.localeCompare(vb, 'ko');
+    return dir === 'desc' ? vb - va : va - vb;
+  });
+  renderTable(sorted, currentMarket);
+}
+
+function wireSortableHeaders() {
+  document.querySelectorAll('#screenerHeaderRow th[data-key]').forEach(th => {
+    th.style.cursor = 'pointer';
+    const key = th.dataset.key;
+    if (currentSort.key === key) th.textContent += currentSort.dir === 'desc' ? ' ▼' : ' ▲';
+    th.addEventListener('click', () => {
+      if (currentSort.key === key) {
+        currentSort.dir = currentSort.dir === 'desc' ? 'asc' : 'desc';
+      } else {
+        currentSort = { key, dir: (key === 'name' || key === 'sector') ? 'asc' : 'desc' };
+      }
+      applyFiltersAndSort();
+    });
+  });
+}
+
 function renderTable(stocks, market) {
   if (!stocks.length) {
     document.getElementById('content').innerHTML = '<div class="error">조건에 맞는 데이터가 없습니다. (크롤링 결과 확인 필요)</div>';
@@ -433,7 +581,6 @@ function renderTable(stocks, market) {
       <td>${fmtPct(s.relativeStrength)}</td>
       <td>${s.volumeSurgeRatio ? s.volumeSurgeRatio.toFixed(2) + 'x' : '-'}</td>
       <td>${s.rsRatingPercentile !== null ? s.rsRatingPercentile : '-'}</td>
-      <td>${s.lowRise !== null && s.lowRise !== undefined ? fmtPct(s.lowRise) : '-'}</td>
       <td>${s.lastClose?.toLocaleString() ?? '-'}</td>
       <td>${s.breakoutLevel ? s.breakoutLevel.toLocaleString(undefined, {maximumFractionDigits:2}) : '-'}</td>
       <td title="${s.stopLossBasis === 'base_low' ? '베이스 하단 기준' : '% 기준(베이스 하단이 너무 멀 때 대체)'}">
@@ -441,35 +588,46 @@ function renderTable(stocks, market) {
         ${s.stopLossBasis ? `<span style="color:var(--muted); font-size:10px;">${s.stopLossBasis === 'base_low' ? '(베이스)' : '(%)'}</span>` : ''}
       </td>
       <td>${fmtTier(s.positionSizeFactor)}</td>
-      <td class="${s.stockStrengthPct >= 75 ? 'pos' : s.stockStrengthPct <= 25 ? 'neg' : ''}">${s.stockStrengthPct}%</td>
     </tr>`).join('');
 
   document.getElementById('content').innerHTML = `
     <div class="table-scroll">
     <table>
       <thead>
-        <tr>
-          <th>종목</th><th>섹터</th><th>점수</th><th>체크리스트</th><th>고점대비</th><th>거래량비</th>
-          <th>RS레이팅</th><th>저점대비</th>
-          <th>현재가</th><th>돌파선</th><th>손절선</th><th>권장기준</th><th>개별강도</th>
+        <tr id="screenerHeaderRow">
+          <th data-key="name">종목</th><th data-key="sector">섹터</th><th data-key="score">점수</th><th>체크리스트</th><th data-key="relativeStrength">고점대비</th><th data-key="volumeSurgeRatio">거래량비</th>
+          <th data-key="rsRatingPercentile">RS레이팅</th>
+          <th data-key="lastClose">현재가</th><th>돌파선</th><th>손절선</th><th>권장기준</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
     </div>`;
+  wireSortableHeaders(stocks, market);
 }
 
 document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    if (btn.dataset.market === 'backtest') document.getElementById('filterBar').style.display = 'none';
     load(btn.dataset.market);
   });
 });
 
+document.getElementById('sectorFilter').addEventListener('change', (e) => {
+  currentSectorFilter = e.target.value;
+  applyFiltersAndSort();
+});
+
 document.getElementById('backtestRun').addEventListener('click', runBacktest);
+document.getElementById('backtestLookbackCompare').addEventListener('click', runLookbackCompare);
 document.getElementById('backtestTicker').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') runBacktest();
+});
+document.getElementById('backtestRegion').addEventListener('change', (e) => {
+  const ticker = document.getElementById('backtestTicker');
+  ticker.value = e.target.value === 'us' ? 'PLTR' : '005930';
 });
 
 document.getElementById('lookbackSelect').addEventListener('change', () => {
