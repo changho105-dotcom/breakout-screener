@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const NodeCache = require('node-cache');
 
-const { classifyMarketRegime, evaluateStock, LOOKBACK_OPTIONS } = require('./lib/indicators');
+const { classifyMarketRegime, evaluateStock, checkBreakout, LOOKBACK_OPTIONS } = require('./lib/indicators');
 const { runBreakoutBacktest } = require('./lib/backtest');
 const { runBatched } = require('./lib/batch');
 const krSource = require('./lib/krSource');
@@ -277,6 +277,72 @@ app.get('/api/backtest/us/compare/batch', async (req, res) => {
   // 요청한 순서대로 정렬
   const ordered = tickers.map(t => results.find(r => r.ticker === t)).filter(Boolean);
   res.json({ lookback: resolveLookback(req.query.lookback).key, results: ordered });
+});
+
+app.get('/api/chart/kr/:ticker', async (req, res) => {
+  const ticker = req.params.ticker;
+  const { key: lookbackKey, days: lookbackDays } = resolveLookback(req.query.lookback);
+  const cacheKey = `chart_kr_${ticker}_${lookbackKey}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json(cached);
+
+  try {
+    const fetchDays = Math.max(lookbackDays + 40, 260); // 차트에 여유 있게 보여주기 위해 lookback보다 좀 더 넉넉히
+    const ohlcv = await krSource.fetchOHLCV(ticker, fetchDays);
+    if (!ohlcv.closes.length) {
+      return res.status(404).json({ error: `${ticker} 차트 데이터를 찾을 수 없습니다` });
+    }
+    const breakout = checkBreakout(ohlcv.highs, ohlcv.closes, ohlcv.lows, lookbackDays);
+    const payload = {
+      ticker,
+      dates: ohlcv.dates,
+      closes: ohlcv.closes,
+      highs: ohlcv.highs,
+      lows: ohlcv.lows,
+      volumes: ohlcv.volumes,
+      breakoutLevel: breakout.breakoutLevel,
+      stopLossLevel: breakout.stopLossLevel,
+      stopLossBasis: breakout.stopLossBasis,
+    };
+    cache.set(cacheKey, payload);
+    res.json(payload);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/chart/us/:ticker', async (req, res) => {
+  const ticker = req.params.ticker.toUpperCase();
+  const { key: lookbackKey, days: lookbackDays } = resolveLookback(req.query.lookback);
+  const cacheKey = `chart_us_${ticker}_${lookbackKey}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json(cached);
+
+  try {
+    const fetchDays = Math.max(lookbackDays + 40, 260);
+    const ohlcv = await usSource.fetchOHLCV(ticker, fetchDays);
+    if (!ohlcv.closes.length) {
+      return res.status(404).json({ error: `${ticker} 차트 데이터를 찾을 수 없습니다` });
+    }
+    const breakout = checkBreakout(ohlcv.highs, ohlcv.closes, ohlcv.lows, lookbackDays);
+    const payload = {
+      ticker,
+      dates: ohlcv.dates,
+      closes: ohlcv.closes,
+      highs: ohlcv.highs,
+      lows: ohlcv.lows,
+      volumes: ohlcv.volumes,
+      breakoutLevel: breakout.breakoutLevel,
+      stopLossLevel: breakout.stopLossLevel,
+      stopLossBasis: breakout.stopLossBasis,
+    };
+    cache.set(cacheKey, payload);
+    res.json(payload);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/lookback-options', (req, res) => {

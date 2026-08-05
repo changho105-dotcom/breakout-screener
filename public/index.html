@@ -111,9 +111,40 @@
   .header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
   .lookback-wrap { display: flex; align-items: center; gap: 8px; }
   .lookback-wrap label { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  tbody tr[data-ticker] { cursor: pointer; }
+  tbody tr[data-ticker]:hover td { background: #1A2029; }
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 100; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px; width: min(720px, 92vw); max-height: 85vh; overflow-y: auto;
+  }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .modal-header h2 { font-size: 16px; margin: 0; font-weight: 700; }
+  .modal-close {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; width: 28px; height: 28px; cursor: pointer; font-size: 14px;
+  }
+  .chart-legend { display: flex; gap: 16px; font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
+  .chart-legend span.dot { display:inline-block; width:10px; height:2px; margin-right:4px; vertical-align:middle; }
 </style>
 </head>
 <body>
+
+<div class="modal-overlay" id="chartModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="chartModalTitle">차트</h2>
+      <button class="modal-close" id="chartModalClose">✕</button>
+    </div>
+    <div id="chartModalBody"><div class="loading">불러오는 중...</div></div>
+  </div>
+</div>
 
 <header>
   <div class="header-row">
@@ -359,7 +390,7 @@ function renderTable(stocks, market) {
     return;
   }
   const rows = stocks.map(s => `
-    <tr>
+    <tr data-ticker="${s.ticker}" data-market="${market}" data-name="${s.name}">
       <td class="name">${s.name} <span style="color:var(--muted)">${s.ticker}</span></td>
       <td style="color:var(--muted); font-size:12px;">${s.sector || '-'}</td>
       <td class="score score-${s.score}">${s.score}/4</td>
@@ -414,6 +445,118 @@ document.getElementById('lookbackSelect').addEventListener('change', () => {
     load(currentMarket);
   }
 });
+
+// ── 종목 클릭 → 차트 모달 ──
+document.getElementById('content').addEventListener('click', (e) => {
+  const row = e.target.closest('tr[data-ticker]');
+  if (!row) return;
+  openChartModal(row.dataset.ticker, row.dataset.market, row.dataset.name);
+});
+
+document.getElementById('chartModalClose').addEventListener('click', closeChartModal);
+document.getElementById('chartModal').addEventListener('click', (e) => {
+  if (e.target.id === 'chartModal') closeChartModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeChartModal();
+});
+
+function openChartModal(ticker, market, name) {
+  document.getElementById('chartModalTitle').textContent = `${name} (${ticker})`;
+  document.getElementById('chartModalBody').innerHTML = '<div class="loading">차트 불러오는 중...</div>';
+  document.getElementById('chartModal').classList.add('open');
+  loadChart(ticker, market);
+}
+
+function closeChartModal() {
+  document.getElementById('chartModal').classList.remove('open');
+}
+
+async function loadChart(ticker, market) {
+  try {
+    const lookback = document.getElementById('lookbackSelect').value;
+    const res = await fetch(`/api/chart/${market}/${encodeURIComponent(ticker)}?lookback=${lookback}`);
+    if (!res.ok) {
+      let detail = `상태코드 ${res.status}`;
+      try { const b = await res.json(); if (b.error) detail = b.error; } catch (_) {}
+      throw new Error(detail);
+    }
+    const data = await res.json();
+    renderChart(data);
+  } catch (err) {
+    document.getElementById('chartModalBody').innerHTML = `<div class="error">차트 불러오기 실패: ${err.message}</div>`;
+  }
+}
+
+function renderChart(data) {
+  const { dates, closes, volumes, breakoutLevel, stopLossLevel, stopLossBasis } = data;
+  if (!closes || !closes.length) {
+    document.getElementById('chartModalBody').innerHTML = '<div class="error">차트 데이터가 없습니다.</div>';
+    return;
+  }
+
+  const W = 660, H = 300, padL = 55, padR = 15, padT = 15, padB = 20;
+  const volH = 60, volGap = 10;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  const allVals = closes.concat(breakoutLevel ? [breakoutLevel] : [], stopLossLevel ? [stopLossLevel] : []);
+  const minV = Math.min(...allVals) * 0.98;
+  const maxV = Math.max(...allVals) * 1.02;
+  const xStep = plotW / (closes.length - 1 || 1);
+  const yScale = (v) => padT + plotH - ((v - minV) / (maxV - minV || 1)) * plotH;
+  const xScale = (i) => padL + i * xStep;
+
+  const linePoints = closes.map((c, i) => `${xScale(i).toFixed(1)},${yScale(c).toFixed(1)}`).join(' ');
+
+  const maxVol = Math.max(...volumes, 1);
+  const volBarW = Math.max(plotW / volumes.length - 1, 0.5);
+  const volBars = volumes.map((v, i) => {
+    const barH = (v / maxVol) * volH;
+    const x = xScale(i) - volBarW / 2;
+    const y = padT + plotH + volGap + (volH - barH);
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${volBarW.toFixed(1)}" height="${barH.toFixed(1)}" fill="#2A2F37" />`;
+  }).join('');
+
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map(t => {
+    const v = minV + (maxV - minV) * t;
+    const y = yScale(v);
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#1A1F26" stroke-width="1" />
+            <text x="${padL - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#7A8290" font-family="monospace">${Math.round(v).toLocaleString()}</text>`;
+  }).join('');
+
+  const refLine = (level, color, label) => {
+    if (!level) return '';
+    const y = yScale(level);
+    if (y < padT || y > padT + plotH) return ''; // 범위 밖이면 생략
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="${color}" stroke-width="1" stroke-dasharray="4,3" />
+            <text x="${W - padR}" y="${(y - 3).toFixed(1)}" text-anchor="end" font-size="9" fill="${color}" font-family="monospace">${label}</text>`;
+  };
+
+  const xLabels = [0, Math.floor(closes.length / 2), closes.length - 1].map(i => {
+    if (!dates[i]) return '';
+    return `<text x="${xScale(i).toFixed(1)}" y="${(padT + plotH + volGap + volH + 12).toFixed(1)}" text-anchor="middle" font-size="9" fill="#7A8290" font-family="monospace">${dates[i]}</text>`;
+  }).join('');
+
+  const svg = `
+    <svg viewBox="0 0 ${W} ${padT + plotH + volGap + volH + 20}" width="100%" style="background:var(--bg); border-radius:8px;">
+      ${gridLines}
+      ${volBars}
+      ${refLine(breakoutLevel, 'var(--amber)', '돌파선')}
+      ${refLine(stopLossLevel, 'var(--down)', '손절선')}
+      <polyline points="${linePoints}" fill="none" stroke="var(--up)" stroke-width="1.5" />
+      ${xLabels}
+    </svg>`;
+
+  document.getElementById('chartModalBody').innerHTML = `
+    ${svg}
+    <div class="chart-legend">
+      <span><span class="dot" style="background:var(--up);"></span>종가</span>
+      <span><span class="dot" style="background:var(--amber);"></span>돌파선 ${breakoutLevel ? breakoutLevel.toLocaleString(undefined,{maximumFractionDigits:2}) : '-'}</span>
+      <span><span class="dot" style="background:var(--down);"></span>손절선 ${stopLossLevel ? stopLossLevel.toLocaleString(undefined,{maximumFractionDigits:2}) : '-'} ${stopLossBasis ? `(${stopLossBasis === 'base_low' ? '베이스' : '%'})` : ''}</span>
+      <span style="color:#2A2F37;">■ 거래량</span>
+    </div>`;
+}
 
 load('kr');
 </script>
