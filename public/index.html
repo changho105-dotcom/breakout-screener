@@ -104,12 +104,30 @@
   .summary-card .label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
   .summary-card .value { font-family: var(--mono); font-size: 20px; font-weight: 700; }
   .reason-tag { font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #1A1F26; color: var(--muted); }
+  .lookback-select {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--mono); font-size: 12px; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+  }
+  .header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .lookback-wrap { display: flex; align-items: center; gap: 8px; }
+  .lookback-wrap label { font-family: var(--mono); font-size: 11px; color: var(--muted); }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>돌파매매 스크리너 · MVP</h1>
+  <div class="header-row">
+    <h1>돌파매매 스크리너 · MVP</h1>
+    <div class="lookback-wrap">
+      <label for="lookbackSelect">신고가/돌파 기준</label>
+      <select id="lookbackSelect" class="lookback-select">
+        <option value="60d">60일</option>
+        <option value="120d">120일</option>
+        <option value="36w" selected>36주</option>
+        <option value="52w">52주</option>
+      </select>
+    </div>
+  </div>
   <div class="tabs">
     <button class="tab active" data-market="kr">코스피 / 코스닥</button>
     <button class="tab" data-market="us">미국주식 (S&amp;P500)</button>
@@ -128,7 +146,7 @@
   <div class="meta" id="meta">불러오는 중...</div>
   <div id="content"><div class="loading">데이터 불러오는 중...</div></div>
   <div class="checklist-key" id="checklistKey">
-    ● 체크리스트 순서: 시장국면 · 36주신고가근접(-20%이내) · 거래량급증 · 36주전고점돌파 · 유동성 — 5개 중 몇 개를 통과했는지가 점수(score)
+    ● 체크리스트 순서: 시장국면 · 신고가근접(-20%이내) · 거래량급증 · 전고점돌파 · 유동성 — 5개 중 몇 개를 통과했는지가 점수(score). 기준 기간은 상단 드롭다운으로 변경 가능
   </div>
 </main>
 
@@ -136,6 +154,7 @@
 const REGIME_ORDER = ['DOWN', 'PULLBACK', 'WEAK_UP', 'STRONG_UP'];
 const REGIME_LABEL = { DOWN: '하락장 · 매매중단', PULLBACK: '조정 · 신규진입중단', WEAK_UP: '약상승 · 비중축소', STRONG_UP: '강한상승 · 정상매매', UNKNOWN: '데이터 부족' };
 const REGIME_CLASS = { DOWN: 'down', PULLBACK: 'pullback', WEAK_UP: 'weak', STRONG_UP: 'strong' };
+const LOOKBACK_LABEL = { '60d': '60일', '120d': '120일', '36w': '36주', '52w': '52주' };
 
 let currentMarket = 'kr';
 
@@ -154,7 +173,8 @@ async function load(market) {
   document.getElementById('content').innerHTML = '<div class="loading">데이터 불러오는 중... (첫 호출은 크롤링 때문에 다소 걸릴 수 있어요)</div>';
   document.getElementById('regimeStrip').innerHTML = '';
   try {
-    const res = await fetch(`/api/screen/${market}`);
+    const lookback = document.getElementById('lookbackSelect').value;
+    const res = await fetch(`/api/screen/${market}?lookback=${lookback}`);
     if (!res.ok) {
       let detail = `상태코드 ${res.status}`;
       try {
@@ -166,7 +186,7 @@ async function load(market) {
     const data = await res.json();
     renderRegime(data.regime);
     renderTable(data.stocks, market);
-    document.getElementById('meta').textContent = `업데이트: ${new Date(data.updatedAt).toLocaleString('ko-KR')} · 종목 수: ${data.stocks.length}`;
+    document.getElementById('meta').textContent = `업데이트: ${new Date(data.updatedAt).toLocaleString('ko-KR')} · 종목 수: ${data.stocks.length} · 기준: ${LOOKBACK_LABEL[data.lookback] || data.lookback}`;
   } catch (err) {
     document.getElementById('content').innerHTML = `<div class="error">불러오기 실패: ${err.message}</div>`;
     document.getElementById('meta').textContent = '';
@@ -178,9 +198,10 @@ async function runBacktest() {
   if (!ticker) return;
   const btn = document.getElementById('backtestRun');
   btn.disabled = true;
-  document.getElementById('content').innerHTML = '<div class="loading">백테스트 실행 중... (3년치 일봉 계산이라 조금 걸려요)</div>';
+  document.getElementById('content').innerHTML = '<div class="loading">백테스트 실행 중... (5년치 일봉 계산이라 조금 걸려요)</div>';
   try {
-    const res = await fetch(`/api/backtest/us/${encodeURIComponent(ticker)}`);
+    const lookback = document.getElementById('lookbackSelect').value;
+    const res = await fetch(`/api/backtest/us/${encodeURIComponent(ticker)}?lookback=${lookback}`);
     if (!res.ok) {
       let detail = `상태코드 ${res.status}`;
       try { const b = await res.json(); if (b.error) detail = b.error; } catch (_) {}
@@ -188,7 +209,7 @@ async function runBacktest() {
     }
     const data = await res.json();
     renderBacktest(data);
-    document.getElementById('meta').textContent = `${data.ticker} · 최근 ${data.periodDays}거래일 기준`;
+    document.getElementById('meta').textContent = `${data.ticker} · 최근 ${data.periodDays}거래일 · 기준: ${LOOKBACK_LABEL[data.lookback] || data.lookback}`;
   } catch (err) {
     document.getElementById('content').innerHTML = `<div class="error">백테스트 실패: ${err.message}</div>`;
   } finally {
@@ -310,6 +331,15 @@ document.querySelectorAll('.tab').forEach(btn => {
 document.getElementById('backtestRun').addEventListener('click', runBacktest);
 document.getElementById('backtestTicker').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') runBacktest();
+});
+
+document.getElementById('lookbackSelect').addEventListener('change', () => {
+  if (currentMarket === 'backtest') {
+    // 백테스트는 티커가 입력돼 있을 때만 자동 재실행
+    if (document.getElementById('backtestTicker').value.trim()) runBacktest();
+  } else {
+    load(currentMarket);
+  }
 });
 
 load('kr');

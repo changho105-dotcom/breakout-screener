@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const NodeCache = require('node-cache');
 
-const { classifyMarketRegime, evaluateStock } = require('./lib/indicators');
+const { classifyMarketRegime, evaluateStock, LOOKBACK_OPTIONS } = require('./lib/indicators');
 const { runBreakoutBacktest } = require('./lib/backtest');
 const { runBatched } = require('./lib/batch');
 const krSource = require('./lib/krSource');
@@ -24,8 +24,16 @@ function returnOverDays(closes, days) {
   return closes[closes.length - 1] / closes[closes.length - 1 - days] - 1;
 }
 
-async function screenKR() {
-  const cached = cache.get('kr');
+const DEFAULT_LOOKBACK_KEY = '36w';
+function resolveLookback(queryValue) {
+  const key = LOOKBACK_OPTIONS[queryValue] ? queryValue : DEFAULT_LOOKBACK_KEY;
+  return { key, days: LOOKBACK_OPTIONS[key].days };
+}
+
+async function screenKR(lookbackKey) {
+  const { key, days: lookbackDays } = resolveLookback(lookbackKey);
+  const cacheKey = `kr_${key}`;
+  const cached = cache.get(cacheKey);
   if (cached) return cached;
 
   const [kospiList, kosdaqList] = await Promise.all([
@@ -61,20 +69,24 @@ async function screenKR() {
       indexRegime: regimeByMarket[stock.market],
       sectorAvgReturn: null,
       market: 'KR',
+      lookback: lookbackDays,
     });
   }, 8);
 
   const result = {
     updatedAt: new Date().toISOString(),
+    lookback: key,
     regime: regimeByMarket,
     stocks: evaluated.sort((a, b) => b.score - a.score),
   };
-  cache.set('kr', result);
+  cache.set(cacheKey, result);
   return result;
 }
 
-async function screenUS() {
-  const cached = cache.get('us');
+async function screenUS(lookbackKey) {
+  const { key, days: lookbackDays } = resolveLookback(lookbackKey);
+  const cacheKey = `us_${key}`;
+  const cached = cache.get(cacheKey);
   if (cached) return cached;
 
   const stockList = await usSource.fetchStockList();
@@ -94,7 +106,7 @@ async function screenUS() {
     return { stock, ohlcv };
   }, 10);
 
-  // 섹터 강도: 섹터별 60일 평균 수익률 계산 (RS와 동일 lookback)
+  // 섹터 강도: 섹터별 60일 평균 수익률 계산
   const sectorReturns = {};
   for (const { stock, ohlcv } of withOhlcv) {
     const ret = returnOverDays(ohlcv.closes, 60);
@@ -119,22 +131,24 @@ async function screenUS() {
       indexRegime: primaryRegime,
       sectorAvgReturn: sectorAvg[stock.sector] ?? null,
       market: 'US',
+      lookback: lookbackDays,
     })
   );
 
   const result = {
     updatedAt: new Date().toISOString(),
+    lookback: key,
     regime,
     sectorAvg,
     stocks: evaluated.sort((a, b) => b.score - a.score),
   };
-  cache.set('us', result);
+  cache.set(cacheKey, result);
   return result;
 }
 
 app.get('/api/screen/kr', async (req, res) => {
   try {
-    const data = await screenKR();
+    const data = await screenKR(req.query.lookback);
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -144,7 +158,7 @@ app.get('/api/screen/kr', async (req, res) => {
 
 app.get('/api/screen/us', async (req, res) => {
   try {
-    const data = await screenUS();
+    const data = await screenUS(req.query.lookback);
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -154,12 +168,13 @@ app.get('/api/screen/us', async (req, res) => {
 
 app.get('/api/backtest/us/:ticker', async (req, res) => {
   const ticker = req.params.ticker.toUpperCase();
-  const cacheKey = `backtest_us_${ticker}`;
+  const { key: lookbackKey, days: lookbackDays } = resolveLookback(req.query.lookback);
+  const cacheKey = `backtest_us_${ticker}_${lookbackKey}`;
   const cached = cache.get(cacheKey);
   if (cached) return res.json(cached);
 
   try {
-    const days = 1260; // 약 5년치 일봉 (52주 워밍업 이후에도 충분한 검증 기간 확보 위해 확장)
+    const days = 1260; // 약 5년치 일봉 (신고가 워밍업 이후에도 충분한 검증 기간 확보 위해 확장)
     const [stockOhlcv, indexOhlcv] = await Promise.all([
       usSource.fetchOHLCV(ticker, days),
       usSource.fetchIndexOHLCV(days),
@@ -180,15 +195,20 @@ app.get('/api/backtest/us/:ticker', async (req, res) => {
       closes: trim(stockOhlcv.closes),
       volumes: trim(stockOhlcv.volumes),
       indexCloses: trim(indexOhlcv.closes),
+      lookback: lookbackDays,
     });
 
-    const payload = { ticker, periodDays: len, ...result };
+    const payload = { ticker, lookback: lookbackKey, periodDays: len, ...result };
     cache.set(cacheKey, payload, 60 * 60); // 1시간 캐시
     res.json(payload);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
+});
+
+app.get('/api/lookback-options', (req, res) => {
+  res.json(LOOKBACK_OPTIONS);
 });
 
 app.listen(PORT, () => console.log(`breakout-screener listening on ${PORT}`));
