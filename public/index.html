@@ -128,7 +128,7 @@
   <div class="meta" id="meta">불러오는 중...</div>
   <div id="content"><div class="loading">데이터 불러오는 중...</div></div>
   <div class="checklist-key" id="checklistKey">
-    ● 체크리스트 순서: 시장국면 · 52주신고가근접(-20%이내) · 거래량급증 · 52주전고점돌파 · 유동성 — 5개 중 몇 개를 통과했는지가 점수(score)
+    ● 체크리스트 순서: 시장국면 · 36주신고가근접(-20%이내) · 거래량급증 · 36주전고점돌파 · 유동성 — 5개 중 몇 개를 통과했는지가 점수(score)
   </div>
 </main>
 
@@ -274,7 +274,7 @@ function renderTable(stocks, market) {
       <td class="score score-${s.score}">${s.score}/5</td>
       <td>
         <span class="badge ${s.checklist.marketRegimeOk ? 'pass' : 'fail'}" title="시장국면"></span>
-        <span class="badge ${s.checklist.relativeStrengthOk ? 'pass' : 'fail'}" title="52주신고가근접"></span>
+        <span class="badge ${s.checklist.relativeStrengthOk ? 'pass' : 'fail'}" title="36주신고가근접"></span>
         <span class="badge ${s.checklist.volumeSurgeOk ? 'pass' : 'fail'}" title="거래량"></span>
         <span class="badge ${s.checklist.breakoutOk ? 'pass' : 'fail'}" title="돌파"></span>
         <span class="badge ${s.checklist.liquidityOk ? 'pass' : 'fail'}" title="유동성"></span>
@@ -291,7 +291,7 @@ function renderTable(stocks, market) {
     <table>
       <thead>
         <tr>
-          <th>종목</th><th>점수</th><th>체크리스트</th><th>52주고점대비</th><th>거래량비</th>
+          <th>종목</th><th>점수</th><th>체크리스트</th><th>36주고점대비</th><th>거래량비</th>
           <th>현재가</th><th>돌파선</th><th>손절선</th><th>권장비중</th>
         </tr>
       </thead>
