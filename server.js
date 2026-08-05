@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const NodeCache = require('node-cache');
 
-const { classifyMarketRegime, evaluateStock, checkBreakout, LOOKBACK_OPTIONS } = require('./lib/indicators');
+const { classifyMarketRegime, evaluateStock, checkBreakout, computeRsRatings, LOOKBACK_OPTIONS } = require('./lib/indicators');
 const { runBreakoutBacktest } = require('./lib/backtest');
 const { runBatched } = require('./lib/batch');
 const krSource = require('./lib/krSource');
@@ -76,8 +76,8 @@ async function screenKR(lookbackKey) {
   const stockList = [...kospiList, ...kosdaqList];
 
   const [kospiIdx, kosdaqIdx] = await Promise.all([
-    krSource.fetchIndexOHLCV('KOSPI', 280),
-    krSource.fetchIndexOHLCV('KOSDAQ', 280),
+    krSource.fetchIndexOHLCV('KOSPI', 300),
+    krSource.fetchIndexOHLCV('KOSDAQ', 300),
   ]);
   const regimeByMarket = {
     KOSPI: classifyMarketRegime(kospiIdx.closes),
@@ -89,12 +89,13 @@ async function screenKR(lookbackKey) {
   };
 
   const withOhlcv = await runBatched(stockList, async (stock) => {
-    const ohlcv = await krSource.fetchOHLCV(stock.ticker, 280);
+    const ohlcv = await krSource.fetchOHLCV(stock.ticker, 300);
     if (!ohlcv.closes.length) return null;
     return { stock, ohlcv, sector: sectorMap[stock.ticker] || null };
   }, 8);
 
   const sectorAvg = computeSectorAvg(withOhlcv.map(({ sector, ohlcv }) => ({ sector, closes: ohlcv.closes })), 60);
+  const rsRatings = computeRsRatings(withOhlcv.map(({ stock, ohlcv }) => ({ key: stock.ticker, closes: ohlcv.closes })), lookbackDays);
 
   const evaluated = withOhlcv.map(({ stock, ohlcv, sector }) =>
     evaluateStock({
@@ -110,6 +111,7 @@ async function screenKR(lookbackKey) {
       sectorAvgReturn: sector ? sectorAvg[sector] ?? null : null,
       market: 'KR',
       lookback: lookbackDays,
+      rsRatingPercentile: rsRatings[stock.ticker] ?? null,
     })
   );
   const liquidStocks = evaluated.filter(s => s.liquidityOk);
@@ -135,7 +137,7 @@ async function screenUS(lookbackKey) {
   if (cached) return cached;
 
   const stockList = await usSource.fetchStockList();
-  const allIndexOhlcv = await usSource.fetchAllIndexOHLCV(280);
+  const allIndexOhlcv = await usSource.fetchAllIndexOHLCV(300);
   const regime = {
     SP500: classifyMarketRegime(allIndexOhlcv.SP500.closes),
     DOW: classifyMarketRegime(allIndexOhlcv.DOW.closes),
@@ -146,12 +148,13 @@ async function screenUS(lookbackKey) {
   const primaryRegime = regime.SP500;
 
   const withOhlcv = await runBatched(stockList, async (stock) => {
-    const ohlcv = await usSource.fetchOHLCV(stock.ticker, 280);
+    const ohlcv = await usSource.fetchOHLCV(stock.ticker, 300);
     if (!ohlcv.closes.length) return null;
     return { stock, ohlcv };
   }, 10);
 
   const sectorAvg = computeSectorAvg(withOhlcv.map(({ stock, ohlcv }) => ({ sector: stock.sector, closes: ohlcv.closes })), 60);
+  const rsRatings = computeRsRatings(withOhlcv.map(({ stock, ohlcv }) => ({ key: stock.ticker, closes: ohlcv.closes })), lookbackDays);
 
   const evaluated = withOhlcv.map(({ stock, ohlcv }) =>
     evaluateStock({
@@ -167,6 +170,7 @@ async function screenUS(lookbackKey) {
       sectorAvgReturn: sectorAvg[stock.sector] ?? null,
       market: 'US',
       lookback: lookbackDays,
+      rsRatingPercentile: rsRatings[stock.ticker] ?? null,
     })
   );
   const liquidStocks = evaluated.filter(s => s.liquidityOk);
