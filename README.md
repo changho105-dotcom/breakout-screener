@@ -32,11 +32,12 @@ GET /api/screen/us
 ```
 
 ## 미국장 관련 참고
-- stooq.com 요청량 제한 리스크를 줄이기 위해 MVP는 시가총액 상위 150개만 스캔합니다
+- OHLCV 소스를 stooq.com에서 Yahoo Finance Chart API로 교체함
+  (stooq가 Railway 같은 클라우드 IP를 차단하는 것으로 보여서 교체)
+- 요청량을 줄이기 위해 MVP는 시가총액 상위 150개만 스캔합니다
   (환경변수 `US_UNIVERSE_LIMIT`로 조정 가능, Railway → Variables에서 설정)
-- stooq가 사용량 제한에 걸리면 `/api/screen/us` 호출 시 에러 메시지에
-  "stooq 응답이 CSV 형식이 아님" 이라고 명확히 표시됩니다 - 이 메시지가 보이면
-  잠시 후 다시 시도하거나 US_UNIVERSE_LIMIT을 줄여서 재배포하세요
+- Yahoo Finance도 언젠가 막히거나 형식이 바뀔 수 있음 - 이 경우
+  `/api/screen/us` 에러 메시지에 원인이 그대로 표시됩니다
 
 ## 미구현 (다음 단계에서 추가)
 - 국내(코스피/코스닥) 종목의 업종(섹터) 정보 — 미국은 GICS 섹터로 구현됨
