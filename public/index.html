@@ -177,10 +177,10 @@
   <div class="meta" id="meta">불러오는 중...</div>
   <div id="content"><div class="loading">데이터 불러오는 중...</div></div>
   <div class="checklist-key" id="checklistKey">
-    ● 체크리스트: 시장국면 · 신고가근접(-20%이내) · 거래량급증 · 전고점돌파 · 트렌드템플릿(이평선정렬) · 52주저점대비+30% · VCP(변동성수축,근사치) · RS Rating(70+) — 점수(score) 분모는 데이터 충분 여부에 따라 종목마다 다를 수 있음. 기준 기간은 상단 드롭다운으로 변경 가능<br/>
+    ● 체크리스트(점수 반영): 시장국면 · 신고가근접(-20%이내) · 거래량급증 · 전고점돌파 · 트렌드템플릿(이평선정렬) · RS Rating(70+) — 점수(score) 분모는 데이터 충분 여부에 따라 종목마다 다를 수 있음. 기준 기간은 상단 드롭다운으로 변경 가능<br/>
     ● 유동성 미달 종목은 체크리스트가 아니라 결과 목록에서 아예 제외됩니다<br/>
     ● 권장기준(상/중/하) = 시장 전체 국면 기준 신규진입 강도 · 개별강도(%) = 시장국면과 무관하게 이 종목 자체가 조건을 얼마나 충족하는지<br/>
-    ● VCP는 정교한 다중파동 인식이 아니라 "구간을 3등분해 조정폭·거래량이 줄어드는지"로 근사한 참고용 지표입니다. RS Rating은 현재 화면의 종목군 안에서의 백분위라 백테스트(단일 종목)에는 반영되지 않습니다.
+    ● 저점대비(52주 저점 대비 상승률)와 섹터강도는 점수에는 반영되지 않는 참고용 정보입니다. RS Rating은 현재 화면의 종목군 안에서의 백분위라 백테스트(단일 종목)에는 반영되지 않습니다.
   </div>
 </main>
 
@@ -401,8 +401,6 @@ function renderTable(stocks, market) {
         <span class="badge ${s.checklist.volumeSurgeOk ? 'pass' : 'fail'}" title="거래량"></span>
         <span class="badge ${s.checklist.breakoutOk ? 'pass' : 'fail'}" title="돌파"></span>
         ${'trendTemplateOk' in s.checklist ? `<span class="badge ${s.checklist.trendTemplateOk ? 'pass' : 'fail'}" title="트렌드템플릿(이평선정렬)"></span>` : ''}
-        ${'lowRiseOk' in s.checklist ? `<span class="badge ${s.checklist.lowRiseOk ? 'pass' : 'fail'}" title="52주저점대비+30%"></span>` : ''}
-        ${'vcpOk' in s.checklist ? `<span class="badge ${s.checklist.vcpOk ? 'pass' : 'fail'}" title="VCP(변동성수축, 근사치)"></span>` : ''}
         ${'rsRatingOk' in s.checklist ? `<span class="badge ${s.checklist.rsRatingOk ? 'pass' : 'fail'}" title="RS Rating 70+"></span>` : ''}
       </td>
       <td>${fmtPct(s.relativeStrength)}</td>
