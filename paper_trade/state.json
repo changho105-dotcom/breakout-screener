@@ -1,0 +1,51 @@
+{
+  "startDate": "2026-08-06",
+  "dayCount": 1,
+  "kr": {
+    "cash": 50000000,
+    "positions": [],
+    "realizedPnl": 0,
+    "trades": []
+  },
+  "us": {
+    "cashKrwEquiv": 50000000,
+    "cashUsd": 21940.375071965027,
+    "positions": [
+      {
+        "ticker": "CRL",
+        "name": "Charles River Laboratories",
+        "entryDate": "2026-08-06",
+        "entryPrice": 260.7200012207031,
+        "shares": 13,
+        "stopLoss": 213.39999389648438
+      },
+      {
+        "ticker": "ANET",
+        "name": "Arista Networks",
+        "entryDate": "2026-08-06",
+        "entryPrice": 197.30999755859375,
+        "shares": 17,
+        "stopLoss": 188.51950592041015
+      },
+      {
+        "ticker": "AIZ",
+        "name": "Assurant",
+        "entryDate": "2026-08-06",
+        "entryPrice": 301.57000732421875,
+        "shares": 11,
+        "stopLoss": 269.7799987792969
+      },
+      {
+        "ticker": "AMGN",
+        "name": "Amgen Inc.",
+        "entryDate": "2026-08-06",
+        "entryPrice": 407.8299865722656,
+        "shares": 8,
+        "stopLoss": 353.95001220703125
+      }
+    ],
+    "realizedPnl": 0,
+    "trades": [],
+    "fxRateAtStart": 1417.8800048828125
+  }
+}
