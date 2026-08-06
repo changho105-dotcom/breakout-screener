@@ -253,6 +253,7 @@ async function runSingleBacktest(region, ticker, lookbackKey, krMarket) {
     volumes: trim(stockOhlcv.volumes),
     indexCloses: trim(indexOhlcv.closes),
     lookback: lookbackDays,
+    market: region === 'kr' ? 'KR' : 'US',
   });
 
   const payload = { ticker, region, market: region === 'kr' ? marketTag : 'US', lookback: key, periodDays: len, ...result };

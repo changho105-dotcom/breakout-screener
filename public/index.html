@@ -572,8 +572,7 @@ function renderTable(stocks, market) {
       <td style="color:var(--muted); font-size:12px;">${s.sector || '-'}</td>
       <td class="score score-${s.score}">${s.score}/${s.scoreMax}</td>
       <td>
-        <span class="badge ${s.checklist.marketRegimeOk ? 'pass' : 'fail'}" title="시장국면"></span>
-        <span class="badge ${s.checklist.relativeStrengthOk ? 'pass' : 'fail'}" title="신고가근접"></span>
+        ${'marketRegimeOk' in s.checklist ? `<span class="badge ${s.checklist.marketRegimeOk ? 'pass' : 'fail'}" title="시장국면"></span>` : ''}
         <span class="badge ${s.checklist.volumeSurgeOk ? 'pass' : 'fail'}" title="거래량"></span>
         <span class="badge ${s.checklist.breakoutOk ? 'pass' : 'fail'}" title="돌파"></span>
         ${'trendTemplateOk' in s.checklist ? `<span class="badge ${s.checklist.trendTemplateOk ? 'pass' : 'fail'}" title="트렌드템플릿(이평선정렬)"></span>` : ''}
