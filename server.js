@@ -423,4 +423,22 @@ app.get('/api/lookback-options', (req, res) => {
   res.json(LOOKBACK_OPTIONS);
 });
 
+/**
+ * 실전 가상매매(paper trading) 트래커 현황 - 30일간 매일 갱신되는 로컬 실험용 트래커.
+ * paper_trade/daily_update.js가 로컬에서 실행되어 state.json/log.md를 갱신하고 GitHub에 push하면,
+ * 이 배포본이 재빌드되면서 최신 상태를 보여줌 (Railway가 GitHub push에 auto-deploy 연결돼 있어야 함).
+ */
+app.get('/api/paper-trade', (req, res) => {
+  const fs = require('fs');
+  const statePath = path.join(__dirname, 'paper_trade', 'state.json');
+  const logPath = path.join(__dirname, 'paper_trade', 'log.md');
+  try {
+    const state = fs.existsSync(statePath) ? JSON.parse(fs.readFileSync(statePath, 'utf8')) : null;
+    const log = fs.existsSync(logPath) ? fs.readFileSync(logPath, 'utf8') : '';
+    res.json({ state, log });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => console.log(`breakout-screener listening on ${PORT}`));

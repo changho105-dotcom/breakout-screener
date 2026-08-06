@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>실전 가상매매 트래커</title>
+<style>
+  :root {
+    --bg: #0B0E11;
+    --panel: #12161C;
+    --border: #232830;
+    --text: #E6E8EB;
+    --muted: #8A93A1;
+    --green: #26C281;
+    --red: #E5484D;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, sans-serif;
+    margin: 0;
+    padding: 24px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  .stat-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; color: var(--muted); }
+  .stat-row b { color: var(--text); font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+  pre.log {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    font-size: 12.5px;
+    white-space: pre-wrap;
+    line-height: 1.6;
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  a { color: #4B9EFF; }
+</style>
+</head>
+<body>
+<h1>실전 가상매매 트래커</h1>
+<div class="sub" id="subline">불러오는 중...</div>
+
+<div class="grid" id="cards"></div>
+
+<h2 style="font-size:15px;margin:24px 0 8px;">일별 로그</h2>
+<pre class="log" id="log">불러오는 중...</pre>
+
+<script>
+function fmt(n) { return Math.round(n).toLocaleString(); }
+
+async function load() {
+  const res = await fetch('/api/paper-trade');
+  const { state, log } = await res.json();
+  if (!state) {
+    document.getElementById('subline').textContent = '아직 시작 전입니다.';
+    document.getElementById('log').textContent = log || '(로그 없음)';
+    return;
+  }
+  document.getElementById('subline').textContent =
+    `시작일: ${state.startDate} · ${state.dayCount}일차`;
+
+  const krTotal = state.kr.cash + state.kr.positions.length * 0; // 보유종목 평가액은 진입가 기준으로 표시
+  const krPosValue = state.kr.positions.reduce((a, p) => a + p.entryPrice * p.shares, 0);
+
+  const usPosValue = state.us.positions.reduce((a, p) => a + p.entryPrice * p.shares, 0);
+
+  const cardsHtml = `
+    <div class="card">
+      <h2>한화 포트폴리오 (5천만원)</h2>
+      <div class="stat-row"><span>현금</span><b>${fmt(state.kr.cash)}원</b></div>
+      <div class="stat-row"><span>보유 종목 매수원가 합</span><b>${fmt(krPosValue)}원</b></div>
+      <div class="stat-row"><span>실현손익</span><b class="${state.kr.realizedPnl >= 0 ? 'pos' : 'neg'}">${state.kr.realizedPnl >= 0 ? '+' : ''}${fmt(state.kr.realizedPnl)}원</b></div>
+      <div class="stat-row"><span>보유 종목 수</span><b>${state.kr.positions.length} / 10</b></div>
+      ${state.kr.positions.length ? `
+      <table>
+        <tr><th>종목</th><th>시장</th><th>진입일</th><th>진입가</th><th>수량</th><th>손절선</th></tr>
+        ${state.kr.positions.map(p => `<tr><td>${p.ticker} ${p.name || ''}</td><td>${p.market || ''}</td><td>${p.entryDate}</td><td>${fmt(p.entryPrice)}</td><td>${p.shares}</td><td>${fmt(p.stopLoss)}</td></tr>`).join('')}
+      </table>` : '<div class="empty">보유 종목 없음</div>'}
+    </div>
+    <div class="card">
+      <h2>달러 포트폴리오 (5천만원 상당, 시작환율 ${state.us.fxRateAtStart ? state.us.fxRateAtStart.toFixed(1) : '-'})</h2>
+      <div class="stat-row"><span>현금</span><b>$${state.us.cashUsd ? state.us.cashUsd.toFixed(2) : '-'}</b></div>
+      <div class="stat-row"><span>보유 종목 매수원가 합</span><b>$${usPosValue.toFixed(2)}</b></div>
+      <div class="stat-row"><span>실현손익</span><b class="${state.us.realizedPnl >= 0 ? 'pos' : 'neg'}">${state.us.realizedPnl >= 0 ? '+' : ''}$${state.us.realizedPnl.toFixed(2)}</b></div>
+      <div class="stat-row"><span>보유 종목 수</span><b>${state.us.positions.length} / 10</b></div>
+      ${state.us.positions.length ? `
+      <table>
+        <tr><th>종목</th><th>진입일</th><th>진입가</th><th>수량</th><th>손절선</th></tr>
+        ${state.us.positions.map(p => `<tr><td>${p.ticker} ${p.name || ''}</td><td>${p.entryDate}</td><td>$${p.entryPrice.toFixed(2)}</td><td>${p.shares}</td><td>$${p.stopLoss.toFixed(2)}</td></tr>`).join('')}
+      </table>` : '<div class="empty">보유 종목 없음</div>'}
+    </div>
+  `;
+  document.getElementById('cards').innerHTML = cardsHtml;
+  document.getElementById('log').textContent = log || '(로그 없음)';
+}
+load().catch(e => { document.getElementById('subline').textContent = '오류: ' + e.message; });
+</script>
+</body>
+</html>
