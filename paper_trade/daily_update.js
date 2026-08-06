@@ -101,11 +101,10 @@ async function scanKR() {
 }
 
 // ---- 미국 스캔 ----
+// 2026-08-06 검증 결과: 미국은 시장국면 조건을 요구하지 않는 쪽이 일관되게 나았음 (README 참고)
 async function scanUS() {
   const stockList = await usSource.fetchStockList();
   const idx = await usSource.fetchIndexOHLCV(300);
-  const regime = classifyMarketRegime(idx.closes);
-  const regimeOk = regime === 'STRONG_UP' || regime === 'WEAK_UP';
 
   const { runBatched } = require('../lib/batch');
   const withOhlcv = await runBatched(stockList, async (s) => {
@@ -117,7 +116,7 @@ async function scanUS() {
   const rsRatings = computeRsRatings(withOhlcv.map(s => ({ key: s.ticker, closes: s.ohlcv.closes })), RS_LOOKBACK);
 
   const candidates = [];
-  if (regimeOk) {
+  {
     for (const s of withOhlcv) {
       const { ohlcv } = s;
       const breakout = checkBreakout(ohlcv.highs, ohlcv.closes, ohlcv.lows, CONFIG.breakoutLookback);
