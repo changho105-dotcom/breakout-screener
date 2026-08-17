@@ -1,6 +1,6 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 2,
+  "dayCount": 3,
   "kr": {
     "cash": 50000000,
     "positions": [],
@@ -9,7 +9,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 21940.375071965027,
+    "cashUsd": 28331.10617521103,
     "positions": [
       {
         "ticker": "CRL",
@@ -20,22 +20,6 @@
         "stopLoss": 213.39999389648438
       },
       {
-        "ticker": "ANET",
-        "name": "Arista Networks",
-        "entryDate": "2026-08-06",
-        "entryPrice": 197.30999755859375,
-        "shares": 17,
-        "stopLoss": 188.51950592041015
-      },
-      {
-        "ticker": "AIZ",
-        "name": "Assurant",
-        "entryDate": "2026-08-06",
-        "entryPrice": 301.57000732421875,
-        "shares": 11,
-        "stopLoss": 269.7799987792969
-      },
-      {
         "ticker": "AMGN",
         "name": "Amgen Inc.",
         "entryDate": "2026-08-06",
@@ -44,8 +28,33 @@
         "stopLoss": 353.95001220703125
       }
     ],
-    "realizedPnl": 0,
-    "trades": [],
+    "realizedPnl": -290.8162458750919,
+    "trades": [
+      {
+        "ticker": "ANET",
+        "name": "Arista Networks",
+        "entryDate": "2026-08-06",
+        "entryPrice": 197.30999755859375,
+        "shares": 17,
+        "stopLoss": 188.51950592041015,
+        "exitDate": "2026-08-07",
+        "exitPrice": 188.51950592041015,
+        "exitReason": "stop_loss",
+        "pnl": -159.2770101878358
+      },
+      {
+        "ticker": "AIZ",
+        "name": "Assurant",
+        "entryDate": "2026-08-06",
+        "entryPrice": 301.57000732421875,
+        "shares": 11,
+        "stopLoss": 269.7799987792969,
+        "exitDate": "2026-08-13",
+        "exitPrice": 290.5,
+        "exitReason": "ma20_break",
+        "pnl": -131.5392356872561
+      }
+    ],
     "fxRateAtStart": 1417.8800048828125
   }
 }
