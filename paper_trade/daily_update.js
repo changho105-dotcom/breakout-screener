@@ -65,10 +65,43 @@ function sma(values, period) {
 async function fetchFx() {
   const fetch = require('node-fetch');
   const res = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/KRW=X?range=5d&interval=1d', { headers: { 'User-Agent': 'Mozilla/5.0' } });
+  if (!res.ok) {
+    const bodyPreview = (await res.text()).slice(0, 200);
+    throw new Error(`환율 조회 응답 오류: 상태코드 ${res.status} - ${bodyPreview}`);
+  }
   const j = await res.json();
-  const closes = j.chart.result[0].indicators.quote[0].close.filter(c => c != null);
+  const result = j?.chart?.result?.[0];
+  if (!result) throw new Error(`환율 조회 데이터 없음: ${j?.chart?.error?.description || '알 수 없는 오류'}`);
+  const closes = (result.indicators?.quote?.[0]?.close || []).filter(c => c != null);
+  if (!closes.length) throw new Error('환율 조회 결과에 유효한 종가가 없음');
   return closes[closes.length - 1];
 }
+
+// 종목 배치 조회 중 실패율이 이 이상이면(=상당수 종목이 데이터를 못 가져온 상태) 결과를
+// "오늘은 조건 통과 종목이 없음"으로 보고하지 않고 에러로 처리 - 부분 실패가 "신호 없음"
+// 으로 둔갑해서 사용자를 속이는 걸 막기 위함 (2026-08-29 리뷰에서 추가).
+const MAX_FAILURE_RATE = 0.2;
+
+/**
+ * runBatched를 감싸서 실패율을 집계 -> 너무 높으면 던짐. scanKR/scanUS 공용.
+ */
+async function runBatchedChecked(items, worker, concurrency, label) {
+  let failCount = 0;
+  const results = await runBatched(items, worker, concurrency, () => { failCount++; });
+  const total = items.length;
+  const rate = total > 0 ? failCount / total : 0;
+  if (rate > MAX_FAILURE_RATE) {
+    throw new Error(`${label} 데이터 조회 실패율이 너무 높음 (${failCount}/${total} = ${(rate * 100).toFixed(0)}%) - 결과 신뢰 불가, 이번 회차 스킵`);
+  }
+  return { results, total, failCount };
+}
+
+// 200개 페이지씩 4장(코스피+코스닥 각 최대 200개)을 정상 크롤링하면 원래 수백 개가
+// 나와야 함. res.ok는 정상(200)인데 페이지 구조가 바뀌어 셀렉터가 하나도 안 걸리면
+// "정상 응답인데 0개"로 조용히 통과해버릴 수 있어서, 실패율 체크와 별개로 최소 개수
+// 자체도 확인함 (2026-08-29 리뷰에서 추가 - MAX_FAILURE_RATE는 total이 0이면 못 잡음).
+const MIN_UNIVERSE_KR = 100;
+const MIN_UNIVERSE_US = 100;
 
 // ---- 코스피+코스닥 통합 스캔 ----
 async function scanKR() {
@@ -81,11 +114,14 @@ async function scanKR() {
   const idxCloses = { KOSPI: kospiIdx.closes, KOSDAQ: kosdaqIdx.closes };
 
   const stockList = [...kospiList, ...kosdaqList];
-  const withOhlcv = await runBatched(stockList, async (s) => {
+  if (stockList.length < MIN_UNIVERSE_KR) {
+    throw new Error(`KR 종목리스트가 비정상적으로 적음 (${stockList.length}개, 최소 ${MIN_UNIVERSE_KR}개 기대) - 페이지 구조 변경 등 의심, 결과 신뢰 불가`);
+  }
+  const { results: withOhlcv, total: krTotal, failCount: krFailCount } = await runBatchedChecked(stockList, async (s) => {
     const o = await krSource.fetchOHLCV(s.ticker, 300);
     if (!o.closes.length) return null;
     return { ...s, ohlcv: o };
-  }, 8);
+  }, 8, 'KR 종목');
 
   const rsRatings = computeRsRatings(withOhlcv.map(s => ({ key: s.ticker, closes: s.ohlcv.closes })), RS_LOOKBACK);
 
@@ -111,20 +147,23 @@ async function scanKR() {
     });
   }
   candidates.sort((a, b) => b.rsExcess - a.rsExcess);
-  return candidates;
+  return { candidates, total: krTotal, failCount: krFailCount };
 }
 
 // ---- 미국 스캔 ----
 // 2026-08-06 검증 결과: 미국은 시장국면 조건을 요구하지 않는 쪽이 일관되게 나았음 (README 참고)
 async function scanUS() {
   const stockList = await usSource.fetchStockList();
+  if (stockList.length < MIN_UNIVERSE_US) {
+    throw new Error(`US 종목리스트가 비정상적으로 적음 (${stockList.length}개, 최소 ${MIN_UNIVERSE_US}개 기대) - CSV 소스 구조 변경 등 의심, 결과 신뢰 불가`);
+  }
   const idx = await usSource.fetchIndexOHLCV(300);
 
-  const withOhlcv = await runBatched(stockList, async (s) => {
+  const { results: withOhlcv, total: usTotal, failCount: usFailCount } = await runBatchedChecked(stockList, async (s) => {
     const o = await usSource.fetchOHLCV(s.ticker, 300);
     if (!o.closes.length) return null;
     return { ...s, ohlcv: o };
-  }, 10);
+  }, 10, 'US 종목');
 
   const rsRatings = computeRsRatings(withOhlcv.map(s => ({ key: s.ticker, closes: s.ohlcv.closes })), RS_LOOKBACK);
 
@@ -147,7 +186,7 @@ async function scanUS() {
     });
   }
   candidates.sort((a, b) => b.rsExcess - a.rsExcess);
-  return candidates;
+  return { candidates, total: usTotal, failCount: usFailCount };
 }
 
 /**
@@ -167,7 +206,11 @@ async function checkExitsKR(portfolio, dateForLog) {
       stillHeld.push(pos);
       continue;
     }
-    if (!o.closes.length) { stillHeld.push(pos); continue; }
+    if (!o.closes.length) {
+      warnings.push(`- [KR 경고] ${pos.ticker} 가격 데이터 없음(빈 응답), 보유 유지`);
+      stillHeld.push(pos);
+      continue;
+    }
     const lastClose = o.closes[o.closes.length - 1];
     const lastLow = o.lows[o.lows.length - 1];
     const ma20 = sma(o.closes, 20);
@@ -201,7 +244,11 @@ async function checkExitsUS(portfolio, dateForLog) {
       stillHeld.push(pos);
       continue;
     }
-    if (!o.closes.length) { stillHeld.push(pos); continue; }
+    if (!o.closes.length) {
+      warnings.push(`- [US 경고] ${pos.ticker} 가격 데이터 없음(빈 응답), 보유 유지`);
+      stillHeld.push(pos);
+      continue;
+    }
     const lastClose = o.closes[o.closes.length - 1];
     const lastLow = o.lows[o.lows.length - 1];
     const ma20 = sma(o.closes, 20);
@@ -232,7 +279,8 @@ async function processKR(state, d) {
   }
   const krOpenSlots = MAX_SLOTS - state.kr.positions.length;
   if (krOpenSlots > 0) {
-    const candidates = await scanKR();
+    const { candidates, total, failCount } = await scanKR();
+    if (failCount > 0) appendLog(`- [KR] 스캔 대상 ${total}개 중 ${failCount}개 조회 실패(정상범위, 아래 결과는 나머지 ${total - failCount}개 기준)`);
     const held = new Set(state.kr.positions.map(p => p.ticker));
     const picks = candidates.filter(c => !held.has(c.ticker)).slice(0, krOpenSlots);
     const allocPerSlot = KRW_CAPITAL / MAX_SLOTS;
@@ -263,7 +311,8 @@ async function processUS(state, d) {
   }
   const usOpenSlots = MAX_SLOTS - state.us.positions.length;
   if (usOpenSlots > 0) {
-    const candidates = await scanUS();
+    const { candidates, total, failCount } = await scanUS();
+    if (failCount > 0) appendLog(`- [US] 스캔 대상 ${total}개 중 ${failCount}개 조회 실패(정상범위, 아래 결과는 나머지 ${total - failCount}개 기준)`);
     const held = new Set(state.us.positions.map(p => p.ticker));
     const picks = candidates.filter(c => !held.has(c.ticker)).slice(0, usOpenSlots);
     const allocPerSlot = (USD_CAPITAL_KRW_EQUIV / state.us.fxRateAtStart) / MAX_SLOTS;
