@@ -1,8 +1,11 @@
 // ============================================================
 // paper_trade/daily_update.js 실행 후 변경된 state.json / log.md를
-// GitHub에 커밋·푸시하는 스크립트. Railway Cron Job처럼 매번 컨테이너가
-// 새로 떠서(=파일시스템이 휘발성) 로컬 디스크에 상태를 남길 수 없는
-// 실행환경을 위한 것 - GitHub 저장소 자체를 영구 저장소로 사용한다.
+// GitHub에 반영하는 스크립트.
+//
+// 2026-08-28: 처음엔 git CLI(add/commit/push)로 구현했으나, Railway Cron Job의
+// 실행 컨테이너에는 git 바이너리가 없어서("/bin/sh: 1: git: not found") 매번
+// 크래시났음. git 설치 여부에 의존하지 않도록 GitHub REST API(Contents API)로
+// 직접 파일을 읽고/커밋하는 방식으로 교체 - 어떤 런타임 이미지에서도 동작함.
 //
 // 필요 환경변수:
 //   GITHUB_TOKEN - 이 저장소(contents: read/write)에만 권한을 준
@@ -12,46 +15,86 @@
 // 사용법: node paper_trade/daily_update.js && node paper_trade/commit_and_push.js
 // ============================================================
 
-const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const fetch = require('node-fetch');
 
 const REPO = 'changho105-dotcom/breakout-screener';
+const BRANCH = 'main';
 const TOKEN = process.env.GITHUB_TOKEN;
+const FILES = ['paper_trade/state.json', 'paper_trade/log.md'];
 
-function run(cmd, opts = {}) {
-  return execSync(cmd, { stdio: 'pipe', encoding: 'utf8', ...opts });
+function maskToken(str) {
+  if (!TOKEN || !str) return str;
+  return str.split(TOKEN).join('***');
 }
 
-function main() {
-  if (!TOKEN) {
-    console.error('[commit_and_push] GITHUB_TOKEN 환경변수가 없습니다 - 커밋/푸시를 건너뜁니다.');
-    process.exit(0); // 실패시켜서 daily_update 결과 자체를 무효화하지 않음
-  }
+async function githubApi(urlPath, opts = {}) {
+  return fetch(`https://api.github.com/repos/${REPO}${urlPath}`, {
+    ...opts,
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'breakout-screener-paper-trade-bot',
+      ...(opts.headers || {}),
+    },
+  });
+}
 
-  // 변경사항 없으면 조용히 종료 (예: 주말 스킵으로 아무 것도 안 바뀐 경우)
-  const status = run('git status --porcelain -- paper_trade/state.json paper_trade/log.md');
-  if (!status.trim()) {
-    console.log('[commit_and_push] 변경사항 없음, 커밋 생략');
+/**
+ * 파일 하나를 GitHub API로 조회 -> 로컬 내용과 다르면 커밋.
+ * 로컬과 원격 내용이 같으면(예: 이미 오늘 처리 완료돼서 daily_update.js가
+ * 아무것도 안 바꾼 날) 조용히 건너뜀 - 빈 커밋을 만들지 않음.
+ */
+async function pushFile(relPath, dateStr) {
+  const localPath = path.join(__dirname, '..', relPath);
+  if (!fs.existsSync(localPath)) {
+    console.log(`[commit_and_push] ${relPath} 로컬에 없음, 스킵`);
+    return;
+  }
+  const localB64 = fs.readFileSync(localPath).toString('base64');
+
+  const getRes = await githubApi(`/contents/${relPath}?ref=${BRANCH}`);
+  if (!getRes.ok) {
+    const body = await getRes.text();
+    throw new Error(`GitHub 파일 조회 실패 (${relPath}): 상태코드 ${getRes.status} - ${body.slice(0, 200)}`);
+  }
+  const meta = await getRes.json();
+  const remoteB64 = (meta.content || '').replace(/\n/g, '');
+  if (remoteB64 === localB64) {
+    console.log(`[commit_and_push] ${relPath} 변경사항 없음, 커밋 생략`);
     return;
   }
 
-  run('git config user.email "paper-trade-bot@breakout-screener.local"');
-  run('git config user.name "paper-trade-bot"');
-  run('git add paper_trade/state.json paper_trade/log.md');
+  const putRes = await githubApi(`/contents/${relPath}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: `chore: paper trade auto update - ${dateStr} (Railway cron)`,
+      content: localB64,
+      sha: meta.sha,
+      branch: BRANCH,
+    }),
+  });
+  if (!putRes.ok) {
+    const body = await putRes.text();
+    throw new Error(`GitHub 파일 업데이트 실패 (${relPath}): 상태코드 ${putRes.status} - ${body.slice(0, 200)}`);
+  }
+  console.log(`[commit_and_push] ${relPath} 커밋 완료`);
+}
 
+async function main() {
+  if (!TOKEN) {
+    console.error('[commit_and_push] GITHUB_TOKEN 환경변수가 없습니다 - 커밋을 건너뜁니다.');
+    return; // daily_update.js 결과 자체는 유효하므로 실패시키지 않음
+  }
   const dateStr = new Date().toISOString().slice(0, 10);
-  run(`git commit -m "chore: paper trade auto update - ${dateStr} (Railway cron)"`);
-
-  // 토큰은 remote URL에만 잠깐 주입하고 절대 stdout/stderr에 찍지 않음
-  const remoteUrl = `https://x-access-token:${TOKEN}@github.com/${REPO}.git`;
-  run(`git push ${remoteUrl} HEAD:main`, { stdio: ['ignore', 'ignore', 'ignore'] });
-  console.log('[commit_and_push] 완료: state.json/log.md 커밋 및 푸시');
+  for (const relPath of FILES) {
+    await pushFile(relPath, dateStr);
+  }
 }
 
-try {
-  main();
-} catch (err) {
-  // 토큰이 로그에 노출되지 않도록 에러 메시지에서 토큰 문자열을 마스킹
-  const msg = TOKEN ? (err.message || '').split(TOKEN).join('***') : err.message;
-  console.error('[commit_and_push] 실패:', msg);
+main().catch((err) => {
+  console.error('[commit_and_push] 실패:', maskToken(err.message));
   process.exit(1);
-}
+});
