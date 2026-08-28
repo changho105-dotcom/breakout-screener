@@ -35,6 +35,13 @@ const USD_CAPITAL_KRW_EQUIV = 50_000_000;
 
 function today() { return new Date().toISOString().slice(0, 10); }
 
+// 날짜 문자열(YYYY-MM-DD)을 UTC 자정으로 고정 파싱해서 실행 서버의 로컬 타임존과
+// 무관하게 항상 같은 요일 판정이 나오게 함 (로컬 PC/Railway 등 실행 환경이 달라도 안전).
+function isWeekend(dateStr) {
+  const day = new Date(`${dateStr}T00:00:00Z`).getUTCDay(); // 0=일, 6=토
+  return day === 0 || day === 6;
+}
+
 function loadState() {
   if (fs.existsSync(STATE_PATH)) return JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'));
   return {
@@ -276,8 +283,27 @@ async function processUS(state, d) {
 
 async function main() {
   const state = loadState();
-  state.dayCount++;
   const d = today();
+
+  // 2026-08-28 발견된 버그 수정: 같은 실행환경(로컬 수동실행 + 클라우드 루틴 + 이후
+  // Railway cron 등)이 하루에 두 번 이상 트리거되거나, 크론이 주말에도 그대로 도는 경우
+  // dayCount가 실제 거래일과 어긋나게 이중 증가하는 사고가 있었음 (8/22·8/23 주말 실행,
+  // 8/28 당일 중복 실행 등 - 다행히 당시 데이터 소스 장애로 실거래 왜곡은 없었음이
+  // scratch_kr_reconstruct.js/log.md 대조로 확인됨). 아래 두 가드로 재발 차단:
+  if (state.lastRunDate === d) {
+    console.log(`이미 오늘(${d}) 처리 완료 - 중복 실행 스킵`);
+    return;
+  }
+  if (isWeekend(d)) {
+    state.lastRunDate = d;
+    saveState(state);
+    appendLog(`\n## ${d} (주말, 거래일 아님 - 스킵)\n`);
+    console.log(`주말(${d}) - 스킵`);
+    return;
+  }
+
+  state.dayCount++;
+  state.lastRunDate = d;
   appendLog(`\n## ${d} (Day ${state.dayCount})\n`);
 
   if (state.us.fxRateAtStart === null) {
