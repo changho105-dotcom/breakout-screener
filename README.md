@@ -152,3 +152,40 @@ npm start
 2. Railway에서 새 프로젝트 → GitHub repo 연결
 3. 별도 환경변수 없음 (지금 단계는 API 키 불필요 - 크롤링 기반)
 4. 배포 후 `/api/screen/kr`, `/api/screen/us` 호출해서 정상 동작 확인
+
+## 실전 가상매매(paper trade) 완전 자동화 - Railway Cron Job (2026-08-28)
+
+**배경:** Claude Code 클라우드 루틴으로 `paper_trade/daily_update.js`를 매일 자동 실행하려
+했으나, 클라우드 실행 샌드박스가 호스트 단위 네트워크 egress 허용목록으로 막혀 있어
+`finance.naver.com`/`fchart.stock.naver.com`(한국)과 `query1.finance.yahoo.com`(미국) 모두
+차단됨(`raw.githubusercontent.com` 등 극소수만 허용). 사용자 설정 가능한 egress 설정 UI도
+없음(`/code/environments` 404, 루틴 편집 화면에도 관련 항목 없음) - 다른 금융 API로 바꿔도
+같은 벽에 부딪힐 가능성이 높음. **근본 해결책은 실행 환경 자체를 실제 인터넷이 열려있는
+곳(Railway)으로 옮기는 것.**
+
+**구조:** Railway는 컨테이너가 매번 새로 뜨는(파일시스템 휘발성) Cron Job 서비스를 지원하므로,
+로컬 디스크 대신 **GitHub 저장소 자체를 영구 저장소**로 사용한다 (지금까지의 수동 실행 방식과
+동일한 흐름 - 매번 최신 코드/state.json을 pull → 실행 → 변경분을 다시 push).
+
+**설정 방법 (Railway 대시보드에서 직접 진행):**
+1. GitHub에서 이 저장소(`changho105-dotcom/breakout-screener`) 전용 fine-grained PAT 발급
+   - 권한: 이 저장소만 선택, Contents = Read and write, 그 외 전부 No access
+   - **이 토큰은 절대 Claude(AI)에게 붙여넣지 말고, Railway Variables 화면에만 직접 입력할 것**
+2. 기존 Railway 프로젝트(또는 새 프로젝트)에 새 서비스 추가 → "Cron Job" (Empty Service + Cron 트리거,
+   또는 GitHub repo 연결 후 서비스 설정에서 Cron 활성화)
+3. Source: 이 GitHub repo 연결, Build: `npm install`
+4. Start Command: `node paper_trade/daily_update.js && node paper_trade/commit_and_push.js`
+5. Schedule: `13 7 * * *` (UTC 기준 = 한국시간 매일 오후 4:13, 기존 클라우드 루틴과 동일 시각)
+6. Variables에 `GITHUB_TOKEN` = 1번에서 만든 PAT 값 추가
+7. 배포 후 수동으로 한 번 트리거해서 실행 로그 확인, `paper_trade/log.md`에 새 커밋이
+   정상적으로 push되는지 확인
+
+**안전장치 (2026-08-28 daily_update.js에 추가됨):**
+- 주말(토/일) 자동 스킵 - 크론이 매일 돌아도 거래일 아닌 날은 아무 것도 안 함
+- 같은 날짜 중복 실행 방지 - Railway cron과 기존 Claude Code 루틴이 겹쳐 돌아도
+  (또는 수동 재실행을 하더라도) 이미 오늘 처리됐으면 조용히 스킵, dayCount 이중 증가 없음
+- `commit_and_push.js`는 변경사항이 없으면(예: 주말 스킵) 커밋 자체를 생략
+
+**Railway cron이 정상 작동 확인되면**, 기존 Claude Code 클라우드 루틴("돌파매매 실전
+가상매매 일일 업데이트")은 일시중지 또는 삭제 권장 (위 중복실행 방지 가드 덕분에 당장
+위험하진 않지만, 데이터 소스가 막혀있어 어차피 매번 헛수고이므로 정리하는 게 깔끔함).
