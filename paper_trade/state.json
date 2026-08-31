@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 17,
-  "lastRunDate": "2026-08-30",
+  "dayCount": 18,
+  "lastRunDate": "2026-08-31",
   "kr": {
     "cash": 50000000,
     "positions": [],
@@ -10,7 +10,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 24911.70607450302,
+    "cashUsd": 28221.83107450302,
     "positions": [
       {
         "ticker": "CRL",
@@ -27,17 +27,9 @@
         "entryPrice": 407.8299865722656,
         "shares": 8,
         "stopLoss": 353.95001220703125
-      },
-      {
-        "ticker": "CRWD",
-        "name": "CrowdStrike",
-        "entryDate": "2026-08-28",
-        "entryPrice": 227.9600067138672,
-        "shares": 15,
-        "stopLoss": 220.67499999999998
       }
     ],
-    "realizedPnl": -290.8162458750919,
+    "realizedPnl": -400.09134658309995,
     "trades": [
       {
         "ticker": "ANET",
@@ -62,6 +54,18 @@
         "exitPrice": 290.5,
         "exitReason": "ma20_break",
         "pnl": -131.5392356872561
+      },
+      {
+        "ticker": "CRWD",
+        "name": "CrowdStrike",
+        "entryDate": "2026-08-28",
+        "entryPrice": 227.9600067138672,
+        "shares": 15,
+        "stopLoss": 220.67499999999998,
+        "exitDate": "2026-08-31",
+        "exitPrice": 220.67499999999998,
+        "exitReason": "stop_loss",
+        "pnl": -109.27510070800807
       }
     ],
     "fxRateAtStart": 1417.8800048828125
