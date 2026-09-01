@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 18,
-  "lastRunDate": "2026-08-31",
+  "dayCount": 19,
+  "lastRunDate": "2026-09-01",
   "kr": {
     "cash": 50000000,
     "positions": [],
@@ -10,7 +10,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 28221.83107450302,
+    "cashUsd": 24756.83107450302,
     "positions": [
       {
         "ticker": "CRL",
@@ -27,6 +27,14 @@
         "entryPrice": 407.8299865722656,
         "shares": 8,
         "stopLoss": 353.95001220703125
+      },
+      {
+        "ticker": "CRWD",
+        "name": "CrowdStrike",
+        "entryDate": "2026-09-01",
+        "entryPrice": 231,
+        "shares": 15,
+        "stopLoss": 222.20760177612303
       }
     ],
     "realizedPnl": -400.09134658309995,
