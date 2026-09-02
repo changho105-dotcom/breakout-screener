@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 19,
-  "lastRunDate": "2026-09-01",
+  "dayCount": 20,
+  "lastRunDate": "2026-09-02",
   "kr": {
     "cash": 50000000,
     "positions": [],
@@ -10,7 +10,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 24756.83107450302,
+    "cashUsd": 24709.545015695647,
     "positions": [
       {
         "ticker": "CRL",
@@ -29,15 +29,15 @@
         "stopLoss": 353.95001220703125
       },
       {
-        "ticker": "CRWD",
-        "name": "CrowdStrike",
-        "entryDate": "2026-09-01",
-        "entryPrice": 231,
-        "shares": 15,
-        "stopLoss": 222.20760177612303
+        "ticker": "DE",
+        "name": "Deere & Company",
+        "entryDate": "2026-09-02",
+        "entryPrice": 676.0800170898438,
+        "shares": 5,
+        "stopLoss": 579.3099975585938
       }
     ],
-    "realizedPnl": -400.09134658309995,
+    "realizedPnl": -531.9773199412546,
     "trades": [
       {
         "ticker": "ANET",
@@ -74,6 +74,18 @@
         "exitPrice": 220.67499999999998,
         "exitReason": "stop_loss",
         "pnl": -109.27510070800807
+      },
+      {
+        "ticker": "CRWD",
+        "name": "CrowdStrike",
+        "entryDate": "2026-09-01",
+        "entryPrice": 231,
+        "shares": 15,
+        "stopLoss": 222.20760177612303,
+        "exitDate": "2026-09-02",
+        "exitPrice": 222.20760177612303,
+        "exitReason": "stop_loss",
+        "pnl": -131.8859733581546
       }
     ],
     "fxRateAtStart": 1417.8800048828125
