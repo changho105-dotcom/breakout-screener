@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 21,
-  "lastRunDate": "2026-09-03",
+  "dayCount": 22,
+  "lastRunDate": "2026-09-04",
   "kr": {
     "cash": 50000000,
     "positions": [],
@@ -10,7 +10,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 24709.545015695647,
+    "cashUsd": 21369.045015695647,
     "positions": [
       {
         "ticker": "CRL",
@@ -35,6 +35,14 @@
         "entryPrice": 676.0800170898438,
         "shares": 5,
         "stopLoss": 579.3099975585938
+      },
+      {
+        "ticker": "VRTX",
+        "name": "Vertex Pharmaceuticals",
+        "entryDate": "2026-09-04",
+        "entryPrice": 556.75,
+        "shares": 6,
+        "stopLoss": 479.0199890136719
       }
     ],
     "realizedPnl": -531.9773199412546,
