@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 22,
-  "lastRunDate": "2026-09-06",
+  "dayCount": 23,
+  "lastRunDate": "2026-09-07",
   "kr": {
     "cash": 50000000,
     "positions": [],
@@ -10,16 +10,8 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 21369.045015695647,
+    "cashUsd": 25116.81512677963,
     "positions": [
-      {
-        "ticker": "CRL",
-        "name": "Charles River Laboratories",
-        "entryDate": "2026-08-06",
-        "entryPrice": 260.7200012207031,
-        "shares": 13,
-        "stopLoss": 213.39999389648438
-      },
       {
         "ticker": "AMGN",
         "name": "Amgen Inc.",
@@ -45,7 +37,7 @@
         "stopLoss": 479.0199890136719
       }
     ],
-    "realizedPnl": -531.9773199412546,
+    "realizedPnl": -173.5672247264108,
     "trades": [
       {
         "ticker": "ANET",
@@ -94,6 +86,18 @@
         "exitPrice": 222.20760177612303,
         "exitReason": "stop_loss",
         "pnl": -131.8859733581546
+      },
+      {
+        "ticker": "CRL",
+        "name": "Charles River Laboratories",
+        "entryDate": "2026-08-06",
+        "entryPrice": 260.7200012207031,
+        "shares": 13,
+        "stopLoss": 213.39999389648438,
+        "exitDate": "2026-09-07",
+        "exitPrice": 288.2900085449219,
+        "exitReason": "ma20_break",
+        "pnl": 358.41009521484375
       }
     ],
     "fxRateAtStart": 1417.8800048828125
