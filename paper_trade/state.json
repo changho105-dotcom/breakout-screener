@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 24,
-  "lastRunDate": "2026-09-08",
+  "dayCount": 25,
+  "lastRunDate": "2026-09-09",
   "kr": {
     "cash": 50000000,
     "positions": [],
@@ -10,16 +10,8 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 25116.81512677963,
+    "cashUsd": 31565.85516584213,
     "positions": [
-      {
-        "ticker": "AMGN",
-        "name": "Amgen Inc.",
-        "entryDate": "2026-08-06",
-        "entryPrice": 407.8299865722656,
-        "shares": 8,
-        "stopLoss": 353.95001220703125
-      },
       {
         "ticker": "DE",
         "name": "Deere & Company",
@@ -27,17 +19,9 @@
         "entryPrice": 676.0800170898438,
         "shares": 5,
         "stopLoss": 579.3099975585938
-      },
-      {
-        "ticker": "VRTX",
-        "name": "Vertex Pharmaceuticals",
-        "entryDate": "2026-09-04",
-        "entryPrice": 556.75,
-        "shares": 6,
-        "stopLoss": 479.0199890136719
       }
     ],
-    "realizedPnl": -173.5672247264108,
+    "realizedPnl": -327.6670782420358,
     "trades": [
       {
         "ticker": "ANET",
@@ -98,6 +82,30 @@
         "exitPrice": 288.2900085449219,
         "exitReason": "ma20_break",
         "pnl": 358.41009521484375
+      },
+      {
+        "ticker": "AMGN",
+        "name": "Amgen Inc.",
+        "entryDate": "2026-08-06",
+        "entryPrice": 407.8299865722656,
+        "shares": 8,
+        "stopLoss": 353.95001220703125,
+        "exitDate": "2026-09-09",
+        "exitPrice": 408.8999938964844,
+        "exitReason": "ma20_break",
+        "pnl": 8.56005859375
+      },
+      {
+        "ticker": "VRTX",
+        "name": "Vertex Pharmaceuticals",
+        "entryDate": "2026-09-04",
+        "entryPrice": 556.75,
+        "shares": 6,
+        "stopLoss": 479.0199890136719,
+        "exitDate": "2026-09-09",
+        "exitPrice": 529.6400146484375,
+        "exitReason": "ma20_break",
+        "pnl": -162.659912109375
       }
     ],
     "fxRateAtStart": 1417.8800048828125
