@@ -1,10 +1,20 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 25,
-  "lastRunDate": "2026-09-09",
+  "dayCount": 26,
+  "lastRunDate": "2026-09-10",
   "kr": {
-    "cash": 50000000,
-    "positions": [],
+    "cash": 45096000,
+    "positions": [
+      {
+        "ticker": "131290",
+        "name": "티에스이",
+        "market": "KOSDAQ",
+        "entryDate": "2026-09-10",
+        "entryPrice": 306500,
+        "shares": 16,
+        "stopLoss": 285180
+      }
+    ],
     "realizedPnl": 0,
     "trades": []
   },
