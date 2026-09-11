@@ -1,10 +1,12 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 26,
-  "lastRunDate": "2026-09-10",
+  "dayCount": 27,
+  "lastRunDate": "2026-09-11",
   "kr": {
-    "cash": 45096000,
-    "positions": [
+    "cash": 49658880,
+    "positions": [],
+    "realizedPnl": -341120,
+    "trades": [
       {
         "ticker": "131290",
         "name": "티에스이",
@@ -12,11 +14,13 @@
         "entryDate": "2026-09-10",
         "entryPrice": 306500,
         "shares": 16,
-        "stopLoss": 285180
+        "stopLoss": 285180,
+        "exitDate": "2026-09-11",
+        "exitPrice": 285180,
+        "exitReason": "stop_loss",
+        "pnl": -341120
       }
-    ],
-    "realizedPnl": 0,
-    "trades": []
+    ]
   },
   "us": {
     "cashKrwEquiv": 50000000,
