@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 27,
-  "lastRunDate": "2026-09-13",
+  "dayCount": 28,
+  "lastRunDate": "2026-09-14",
   "kr": {
     "cash": 49658880,
     "positions": [],
@@ -24,7 +24,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 31565.85516584213,
+    "cashUsd": 28162.11529767807,
     "positions": [
       {
         "ticker": "DE",
@@ -33,6 +33,14 @@
         "entryPrice": 676.0800170898438,
         "shares": 5,
         "stopLoss": 579.3099975585938
+      },
+      {
+        "ticker": "DELL",
+        "name": "Dell Technologies",
+        "entryDate": "2026-09-14",
+        "entryPrice": 567.2899780273438,
+        "shares": 6,
+        "stopLoss": 546.1002905273438
       }
     ],
     "realizedPnl": -327.6670782420358,
