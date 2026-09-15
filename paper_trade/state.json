@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 28,
-  "lastRunDate": "2026-09-14",
+  "dayCount": 29,
+  "lastRunDate": "2026-09-15",
   "kr": {
     "cash": 49658880,
     "positions": [],
@@ -24,7 +24,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 28162.11529767807,
+    "cashUsd": 28143.396972482755,
     "positions": [
       {
         "ticker": "DE",
@@ -35,15 +35,15 @@
         "stopLoss": 579.3099975585938
       },
       {
-        "ticker": "DELL",
-        "name": "Dell Technologies",
-        "entryDate": "2026-09-14",
-        "entryPrice": 567.2899780273438,
-        "shares": 6,
-        "stopLoss": 546.1002905273438
+        "ticker": "CRWD",
+        "name": "CrowdStrike",
+        "entryDate": "2026-09-15",
+        "entryPrice": 235.3800048828125,
+        "shares": 14,
+        "stopLoss": 226.8636047363281
       }
     ],
-    "realizedPnl": -327.6670782420358,
+    "realizedPnl": -454.80520324203576,
     "trades": [
       {
         "ticker": "ANET",
@@ -128,6 +128,18 @@
         "exitPrice": 529.6400146484375,
         "exitReason": "ma20_break",
         "pnl": -162.659912109375
+      },
+      {
+        "ticker": "DELL",
+        "name": "Dell Technologies",
+        "entryDate": "2026-09-14",
+        "entryPrice": 567.2899780273438,
+        "shares": 6,
+        "stopLoss": 546.1002905273438,
+        "exitDate": "2026-09-15",
+        "exitPrice": 546.1002905273438,
+        "exitReason": "stop_loss",
+        "pnl": -127.13812499999995
       }
     ],
     "fxRateAtStart": 1417.8800048828125
