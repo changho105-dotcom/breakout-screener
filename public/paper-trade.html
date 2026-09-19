@@ -41,6 +41,34 @@
   .pos { color: var(--green); }
   .neg { color: var(--red); }
   .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+  .signal-box {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 24px;
+  }
+  .signal-box.has-signals { border-color: #4B9EFF; background: rgba(75,158,255,0.08); }
+  .signal-box h2 { font-size: 15px; margin: 0 0 4px; }
+  .signal-box .sub2 { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  .signal-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--panel);
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .signal-badge {
+    font-weight: 700;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .signal-badge.buy { background: rgba(38,194,129,0.18); color: var(--green); }
+  .signal-badge.sell { background: rgba(229,72,77,0.18); color: var(--red); }
   pre.log {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -59,6 +87,8 @@
 <h1>실전 가상매매 트래커</h1>
 <div class="sub" id="subline">불러오는 중...</div>
 
+<div id="signalBox"></div>
+
 <div class="grid" id="cards"></div>
 
 <h2 style="font-size:15px;margin:24px 0 8px;">일별 로그</h2>
@@ -67,14 +97,44 @@
 <script>
 function fmt(n) { return Math.round(n).toLocaleString(); }
 
+function renderSignalBox(todaySignals, lastRunDate) {
+  const box = document.getElementById('signalBox');
+  const hasSignals = todaySignals && todaySignals.length > 0;
+  const dateLabel = lastRunDate || '-';
+  if (!hasSignals) {
+    box.innerHTML = `
+      <div class="signal-box">
+        <h2>오늘의 매매 신호</h2>
+        <div class="sub2">최근 처리일: ${dateLabel}</div>
+        <div class="empty">신규 매수/매도 신호 없음 (직접 매매하실 필요 없음)</div>
+      </div>`;
+    return;
+  }
+  const itemsHtml = todaySignals.map(s => {
+    const isBuy = s.action === 'buy';
+    const priceStr = s.unit === '$' ? `$${Number(s.price).toFixed(2)}` : `${fmt(s.price)}원`;
+    const label = isBuy
+      ? `${s.market} 매수 — ${s.ticker} ${s.name || ''} @ ${priceStr} x ${s.shares}주`
+      : `${s.market} 매도 — ${s.ticker} ${s.name || ''} @ ${priceStr} x ${s.shares}주 (${s.reason || ''}, 손익 ${s.pnl >= 0 ? '+' : ''}${s.unit === '$' ? '$' + Number(s.pnl).toFixed(2) : fmt(s.pnl) + '원'})`;
+    return `<div class="signal-item"><span class="signal-badge ${isBuy ? 'buy' : 'sell'}">${isBuy ? '매수' : '매도'}</span><span>${label}</span></div>`;
+  }).join('');
+  box.innerHTML = `
+    <div class="signal-box has-signals">
+      <h2>🔔 오늘의 매매 신호 (직접 매매 시 참고)</h2>
+      <div class="sub2">처리일: ${dateLabel}</div>
+      ${itemsHtml}
+    </div>`;
+}
+
 async function load() {
   const res = await fetch('/api/paper-trade');
-  const { state, log } = await res.json();
+  const { state, log, todaySignals, lastRunDate } = await res.json();
   if (!state) {
     document.getElementById('subline').textContent = '아직 시작 전입니다.';
     document.getElementById('log').textContent = log || '(로그 없음)';
     return;
   }
+  renderSignalBox(todaySignals, lastRunDate);
   document.getElementById('subline').textContent =
     `시작일: ${state.startDate} · ${state.dayCount}일차`;
 

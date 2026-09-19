@@ -429,6 +429,30 @@ app.get('/api/lookback-options', (req, res) => {
  * paper_trade/daily_update.js가 로컬에서 실행되어 state.json/log.md를 갱신하고 GitHub에 push하면,
  * 이 배포본이 재빌드되면서 최신 상태를 보여줌 (Railway가 GitHub push에 auto-deploy 연결돼 있어야 함).
  */
+/**
+ * state.json의 lastRunDate와 진입일/청산일이 일치하는 항목만 뽑아서 "오늘의 신호"로
+ * 만듦. 로그 텍스트를 정규식으로 파싱하지 않고 state.json의 정형 데이터를 직접 근거로
+ * 삼아서 신뢰도를 높임 (log.md 문구가 나중에 바뀌어도 안 깨짐).
+ */
+function extractTodaySignals(state) {
+  if (!state || !state.lastRunDate) return [];
+  const d = state.lastRunDate;
+  const signals = [];
+  for (const p of state.kr.positions) {
+    if (p.entryDate === d) signals.push({ market: 'KR', action: 'buy', ticker: p.ticker, name: p.name, price: p.entryPrice, shares: p.shares, unit: '원' });
+  }
+  for (const t of state.kr.trades) {
+    if (t.exitDate === d) signals.push({ market: 'KR', action: 'sell', ticker: t.ticker, name: t.name, price: t.exitPrice, shares: t.shares, reason: t.exitReason, pnl: t.pnl, unit: '원' });
+  }
+  for (const p of state.us.positions) {
+    if (p.entryDate === d) signals.push({ market: 'US', action: 'buy', ticker: p.ticker, name: p.name, price: p.entryPrice, shares: p.shares, unit: '$' });
+  }
+  for (const t of state.us.trades) {
+    if (t.exitDate === d) signals.push({ market: 'US', action: 'sell', ticker: t.ticker, name: t.name, price: t.exitPrice, shares: t.shares, reason: t.exitReason, pnl: t.pnl, unit: '$' });
+  }
+  return signals;
+}
+
 app.get('/api/paper-trade', (req, res) => {
   const fs = require('fs');
   const statePath = path.join(__dirname, 'paper_trade', 'state.json');
@@ -436,7 +460,8 @@ app.get('/api/paper-trade', (req, res) => {
   try {
     const state = fs.existsSync(statePath) ? JSON.parse(fs.readFileSync(statePath, 'utf8')) : null;
     const log = fs.existsSync(logPath) ? fs.readFileSync(logPath, 'utf8') : '';
-    res.json({ state, log });
+    const todaySignals = extractTodaySignals(state);
+    res.json({ state, log, todaySignals, lastRunDate: state ? state.lastRunDate : null });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
