@@ -24,6 +24,7 @@ const {
   checkTrendTemplate, computeRsRatings, CONFIG,
 } = require('../lib/indicators');
 const { runBatched } = require('../lib/batch');
+const { notifyTelegram } = require('./notify');
 
 const STATE_PATH = path.join(__dirname, 'state.json');
 const LOG_PATH = path.join(__dirname, 'log.md');
@@ -270,11 +271,13 @@ async function checkExitsUS(portfolio, dateForLog) {
  * KR 시장 전체 처리(청산체크 + 신규진입). 이 함수 자체가 통째로 실패해도(예: 네이버
  * 전체 장애) main()의 try/catch가 잡아서 US 처리는 계속 진행되도록 분리돼 있음.
  */
-async function processKR(state, d) {
+async function processKR(state, d, signals) {
   const { exits, warnings } = await checkExitsKR(state.kr, d);
   for (const w of warnings) appendLog(w);
   for (const e of exits) {
-    appendLog(`- [KR 매도] ${e.ticker} ${e.name || ''} - ${e.exitReason} @ ${e.exitPrice} (진입 ${e.entryPrice}) 손익 ${Math.round(e.pnl).toLocaleString()}원`);
+    const line = `[KR 매도] ${e.ticker} ${e.name || ''} - ${e.exitReason} @ ${e.exitPrice} (진입 ${e.entryPrice}) 손익 ${Math.round(e.pnl).toLocaleString()}원`;
+    appendLog(`- ${line}`);
+    signals.push(line);
     state.kr.trades.push(e);
   }
   const krOpenSlots = MAX_SLOTS - state.kr.positions.length;
@@ -290,7 +293,9 @@ async function processKR(state, d) {
       const cost = shares * p.lastClose;
       state.kr.cash -= cost;
       state.kr.positions.push({ ticker: p.ticker, name: p.name, market: p.market, entryDate: d, entryPrice: p.lastClose, shares, stopLoss: p.stopLoss });
-      appendLog(`- [KR 매수] ${p.ticker} ${p.name || ''} (${p.market}) @ ${p.lastClose} x ${shares}주 = ${Math.round(cost).toLocaleString()}원 (RS초과수익 ${(p.rsExcess * 100).toFixed(1)}%)`);
+      const line = `[KR 매수] ${p.ticker} ${p.name || ''} (${p.market}) @ ${p.lastClose} x ${shares}주 = ${Math.round(cost).toLocaleString()}원 (RS초과수익 ${(p.rsExcess * 100).toFixed(1)}%)`;
+      appendLog(`- ${line}`);
+      signals.push(line);
     }
     if (picks.length === 0) appendLog(`- [KR] 빈 슬롯 ${krOpenSlots}개, 조건 통과 신규 후보 없음`);
   } else {
@@ -302,11 +307,13 @@ async function processKR(state, d) {
  * US 시장 전체 처리. KR과 완전히 독립적으로 실행되며, 이 함수가 실패해도
  * main()에서 KR 결과는 이미 반영된 상태로 saveState()가 실행됨.
  */
-async function processUS(state, d) {
+async function processUS(state, d, signals) {
   const { exits, warnings } = await checkExitsUS(state.us, d);
   for (const w of warnings) appendLog(w);
   for (const e of exits) {
-    appendLog(`- [US 매도] ${e.ticker} - ${e.exitReason} @ $${e.exitPrice} (진입 $${e.entryPrice}) 손익 $${e.pnl.toFixed(2)}`);
+    const line = `[US 매도] ${e.ticker} - ${e.exitReason} @ $${e.exitPrice} (진입 $${e.entryPrice}) 손익 $${e.pnl.toFixed(2)}`;
+    appendLog(`- ${line}`);
+    signals.push(line);
     state.us.trades.push(e);
   }
   const usOpenSlots = MAX_SLOTS - state.us.positions.length;
@@ -322,7 +329,9 @@ async function processUS(state, d) {
       const cost = shares * p.lastClose;
       state.us.cashUsd -= cost;
       state.us.positions.push({ ticker: p.ticker, name: p.name, entryDate: d, entryPrice: p.lastClose, shares, stopLoss: p.stopLoss });
-      appendLog(`- [US 매수] ${p.ticker} ${p.name || ''} @ $${p.lastClose} x ${shares}주 = $${cost.toFixed(2)} (RS초과수익 ${(p.rsExcess * 100).toFixed(1)}%)`);
+      const line = `[US 매수] ${p.ticker} ${p.name || ''} @ $${p.lastClose} x ${shares}주 = $${cost.toFixed(2)} (RS초과수익 ${(p.rsExcess * 100).toFixed(1)}%)`;
+      appendLog(`- ${line}`);
+      signals.push(line);
     }
     if (picks.length === 0) appendLog(`- [US] 빈 슬롯 ${usOpenSlots}개, 조건 통과 신규 후보 없음`);
   } else {
@@ -367,15 +376,16 @@ async function main() {
   }
 
   // KR과 US는 서로 완전히 독립 - 한쪽이 통째로 죽어도 다른 쪽 결과는 보존됨
+  const signals = []; // 오늘 실제 발생한 매수/매도만 모아서 텔레그램으로 알림 (신호 없는 날은 알림 안 보냄)
   try {
-    await processKR(state, d);
+    await processKR(state, d, signals);
   } catch (err) {
     appendLog(`- [KR 오류] 이번 회차 KR 처리 실패, 다음 회차에 재시도: ${err.message}`);
   }
 
   if (state.us.fxRateAtStart !== null) {
     try {
-      await processUS(state, d);
+      await processUS(state, d, signals);
     } catch (err) {
       appendLog(`- [US 오류] 이번 회차 US 처리 실패, 다음 회차에 재시도: ${err.message}`);
     }
@@ -384,6 +394,10 @@ async function main() {
   saveState(state);
   appendLog(`- KR 현금: ${Math.round(state.kr.cash).toLocaleString()}원, 보유 ${state.kr.positions.length}종목 / US 현금: $${state.us.cashUsd !== null ? state.us.cashUsd.toFixed(2) : '-'}, 보유 ${state.us.positions.length}종목`);
   console.log('done, day', state.dayCount);
+
+  if (signals.length > 0) {
+    await notifyTelegram(`📈 돌파매매 ${d} (Day ${state.dayCount}) 매매 신호\n\n${signals.join('\n')}`);
+  }
 }
 
 main().catch(e => { appendLog(`- FATAL ERROR (state 저장 안 됨): ${e.message}`); console.error(e); process.exit(1); });
