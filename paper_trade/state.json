@@ -1,10 +1,20 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 33,
-  "lastRunDate": "2026-09-21",
+  "dayCount": 34,
+  "lastRunDate": "2026-09-22",
   "kr": {
-    "cash": 49658880,
-    "positions": [],
+    "cash": 44663880,
+    "positions": [
+      {
+        "ticker": "064290",
+        "name": "인텍플러스",
+        "market": "KOSDAQ",
+        "entryDate": "2026-09-22",
+        "entryPrice": 55500,
+        "shares": 90,
+        "stopLoss": 52477
+      }
+    ],
     "realizedPnl": -341120,
     "trades": [
       {
@@ -24,7 +34,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 28143.396972482755,
+    "cashUsd": 25065.796874826505,
     "positions": [
       {
         "ticker": "DE",
@@ -41,6 +51,14 @@
         "entryPrice": 235.3800048828125,
         "shares": 14,
         "stopLoss": 226.8636047363281
+      },
+      {
+        "ticker": "AMD",
+        "name": "Advanced Micro Devices Inc.",
+        "entryDate": "2026-09-22",
+        "entryPrice": 615.52001953125,
+        "shares": 5,
+        "stopLoss": 567.1880810546875
       }
     ],
     "realizedPnl": -454.80520324203576,
