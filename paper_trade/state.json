@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 35,
-  "lastRunDate": "2026-09-23",
+  "dayCount": 36,
+  "lastRunDate": "2026-09-24",
   "kr": {
     "cash": 44663880,
     "positions": [
@@ -34,7 +34,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 25065.796874826505,
+    "cashUsd": 21652.84689313705,
     "positions": [
       {
         "ticker": "DE",
@@ -59,6 +59,14 @@
         "entryPrice": 615.52001953125,
         "shares": 5,
         "stopLoss": 567.1880810546875
+      },
+      {
+        "ticker": "BIIB",
+        "name": "Biogen",
+        "entryDate": "2026-09-24",
+        "entryPrice": 227.52999877929688,
+        "shares": 15,
+        "stopLoss": 208.92999267578125
       }
     ],
     "realizedPnl": -454.80520324203576,
