@@ -1,9 +1,9 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 38,
-  "lastRunDate": "2026-09-28",
+  "dayCount": 39,
+  "lastRunDate": "2026-09-29",
   "kr": {
-    "cash": 44663880,
+    "cash": 39749880,
     "positions": [
       {
         "ticker": "064290",
@@ -13,6 +13,15 @@
         "entryPrice": 55500,
         "shares": 90,
         "stopLoss": 52477
+      },
+      {
+        "ticker": "219130",
+        "name": "타이거일렉",
+        "market": "KOSDAQ",
+        "entryDate": "2026-09-29",
+        "entryPrice": 91000,
+        "shares": 54,
+        "stopLoss": 85263
       }
     ],
     "realizedPnl": -341120,
