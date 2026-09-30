@@ -1,19 +1,10 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 39,
-  "lastRunDate": "2026-09-29",
+  "dayCount": 40,
+  "lastRunDate": "2026-09-30",
   "kr": {
-    "cash": 39749880,
+    "cash": 44472810,
     "positions": [
-      {
-        "ticker": "064290",
-        "name": "인텍플러스",
-        "market": "KOSDAQ",
-        "entryDate": "2026-09-22",
-        "entryPrice": 55500,
-        "shares": 90,
-        "stopLoss": 52477
-      },
       {
         "ticker": "219130",
         "name": "타이거일렉",
@@ -24,7 +15,7 @@
         "stopLoss": 85263
       }
     ],
-    "realizedPnl": -341120,
+    "realizedPnl": -613190,
     "trades": [
       {
         "ticker": "131290",
@@ -38,21 +29,26 @@
         "exitPrice": 285180,
         "exitReason": "stop_loss",
         "pnl": -341120
+      },
+      {
+        "ticker": "064290",
+        "name": "인텍플러스",
+        "market": "KOSDAQ",
+        "entryDate": "2026-09-22",
+        "entryPrice": 55500,
+        "shares": 90,
+        "stopLoss": 52477,
+        "exitDate": "2026-09-30",
+        "exitPrice": 52477,
+        "exitReason": "stop_loss",
+        "pnl": -272070
       }
     ]
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 21652.84689313705,
+    "cashUsd": 25080.797027414395,
     "positions": [
-      {
-        "ticker": "DE",
-        "name": "Deere & Company",
-        "entryDate": "2026-09-02",
-        "entryPrice": 676.0800170898438,
-        "shares": 5,
-        "stopLoss": 579.3099975585938
-      },
       {
         "ticker": "CRWD",
         "name": "CrowdStrike",
@@ -78,7 +74,7 @@
         "stopLoss": 208.92999267578125
       }
     ],
-    "realizedPnl": -454.80520324203576,
+    "realizedPnl": -407.25515441391076,
     "trades": [
       {
         "ticker": "ANET",
@@ -175,6 +171,18 @@
         "exitPrice": 546.1002905273438,
         "exitReason": "stop_loss",
         "pnl": -127.13812499999995
+      },
+      {
+        "ticker": "DE",
+        "name": "Deere & Company",
+        "entryDate": "2026-09-02",
+        "entryPrice": 676.0800170898438,
+        "shares": 5,
+        "stopLoss": 579.3099975585938,
+        "exitDate": "2026-09-30",
+        "exitPrice": 685.5900268554688,
+        "exitReason": "ma20_break",
+        "pnl": 47.550048828125
       }
     ],
     "fxRateAtStart": 1417.8800048828125
