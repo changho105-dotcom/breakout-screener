@@ -1,9 +1,9 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 40,
-  "lastRunDate": "2026-09-30",
+  "dayCount": 41,
+  "lastRunDate": "2026-10-01",
   "kr": {
-    "cash": 44472810,
+    "cash": 39494710,
     "positions": [
       {
         "ticker": "219130",
@@ -13,6 +13,15 @@
         "entryPrice": 91000,
         "shares": 54,
         "stopLoss": 85263
+      },
+      {
+        "ticker": "096530",
+        "name": "씨젠",
+        "market": "KOSDAQ",
+        "entryDate": "2026-10-01",
+        "entryPrice": 37150,
+        "shares": 134,
+        "stopLoss": 34677.5
       }
     ],
     "realizedPnl": -613190,
