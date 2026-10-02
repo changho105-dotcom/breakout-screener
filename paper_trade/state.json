@@ -1,9 +1,9 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 41,
-  "lastRunDate": "2026-10-01",
+  "dayCount": 42,
+  "lastRunDate": "2026-10-02",
   "kr": {
-    "cash": 39494710,
+    "cash": 34634310,
     "positions": [
       {
         "ticker": "219130",
@@ -22,6 +22,15 @@
         "entryPrice": 37150,
         "shares": 134,
         "stopLoss": 34677.5
+      },
+      {
+        "ticker": "222800",
+        "name": "심텍",
+        "market": "KOSDAQ",
+        "entryDate": "2026-10-02",
+        "entryPrice": 167600,
+        "shares": 29,
+        "stopLoss": 159274
       }
     ],
     "realizedPnl": -613190,
