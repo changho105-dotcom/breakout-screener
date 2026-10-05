@@ -1,9 +1,9 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 42,
-  "lastRunDate": "2026-10-04",
+  "dayCount": 43,
+  "lastRunDate": "2026-10-05",
   "kr": {
-    "cash": 34634310,
+    "cash": 34317456,
     "positions": [
       {
         "ticker": "219130",
@@ -27,13 +27,13 @@
         "ticker": "222800",
         "name": "심텍",
         "market": "KOSDAQ",
-        "entryDate": "2026-10-02",
-        "entryPrice": 167600,
+        "entryDate": "2026-10-05",
+        "entryPrice": 170200,
         "shares": 29,
         "stopLoss": 159274
       }
     ],
-    "realizedPnl": -613190,
+    "realizedPnl": -854644,
     "trades": [
       {
         "ticker": "131290",
@@ -60,12 +60,25 @@
         "exitPrice": 52477,
         "exitReason": "stop_loss",
         "pnl": -272070
+      },
+      {
+        "ticker": "222800",
+        "name": "심텍",
+        "market": "KOSDAQ",
+        "entryDate": "2026-10-02",
+        "entryPrice": 167600,
+        "shares": 29,
+        "stopLoss": 159274,
+        "exitDate": "2026-10-05",
+        "exitPrice": 159274,
+        "exitReason": "stop_loss",
+        "pnl": -241454
       }
     ]
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 25080.797027414395,
+    "cashUsd": 28425.49696332748,
     "positions": [
       {
         "ticker": "CRWD",
@@ -82,17 +95,9 @@
         "entryPrice": 615.52001953125,
         "shares": 5,
         "stopLoss": 567.1880810546875
-      },
-      {
-        "ticker": "BIIB",
-        "name": "Biogen",
-        "entryDate": "2026-09-24",
-        "entryPrice": 227.52999877929688,
-        "shares": 15,
-        "stopLoss": 208.92999267578125
       }
     ],
-    "realizedPnl": -407.25515441391076,
+    "realizedPnl": -475.50520019027795,
     "trades": [
       {
         "ticker": "ANET",
@@ -201,6 +206,18 @@
         "exitPrice": 685.5900268554688,
         "exitReason": "ma20_break",
         "pnl": 47.550048828125
+      },
+      {
+        "ticker": "BIIB",
+        "name": "Biogen",
+        "entryDate": "2026-09-24",
+        "entryPrice": 227.52999877929688,
+        "shares": 15,
+        "stopLoss": 208.92999267578125,
+        "exitDate": "2026-10-05",
+        "exitPrice": 222.97999572753906,
+        "exitReason": "ma20_break",
+        "pnl": -68.25004577636719
       }
     ],
     "fxRateAtStart": 1417.8800048828125
