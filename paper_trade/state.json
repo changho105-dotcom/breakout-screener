@@ -1,9 +1,9 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 43,
-  "lastRunDate": "2026-10-05",
+  "dayCount": 44,
+  "lastRunDate": "2026-10-06",
   "kr": {
-    "cash": 34317456,
+    "cash": 29324826,
     "positions": [
       {
         "ticker": "219130",
@@ -31,6 +31,15 @@
         "entryPrice": 170200,
         "shares": 29,
         "stopLoss": 159274
+      },
+      {
+        "ticker": "144960",
+        "name": "뉴파워프라즈마",
+        "market": "KOSDAQ",
+        "entryDate": "2026-10-06",
+        "entryPrice": 13830,
+        "shares": 361,
+        "stopLoss": 12998
       }
     ],
     "realizedPnl": -854644,
