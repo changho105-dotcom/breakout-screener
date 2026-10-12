@@ -1,9 +1,9 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 47,
-  "lastRunDate": "2026-10-11",
+  "dayCount": 48,
+  "lastRunDate": "2026-10-12",
   "kr": {
-    "cash": 29025754,
+    "cash": 33644700,
     "positions": [
       {
         "ticker": "219130",
@@ -24,15 +24,6 @@
         "stopLoss": 34677.5
       },
       {
-        "ticker": "222800",
-        "name": "심텍",
-        "market": "KOSDAQ",
-        "entryDate": "2026-10-05",
-        "entryPrice": 170200,
-        "shares": 29,
-        "stopLoss": 159274
-      },
-      {
         "ticker": "041960",
         "name": "코미팜",
         "market": "KOSDAQ",
@@ -42,7 +33,7 @@
         "stopLoss": 10466.3
       }
     ],
-    "realizedPnl": -1154996,
+    "realizedPnl": -1471850,
     "trades": [
       {
         "ticker": "131290",
@@ -95,6 +86,19 @@
         "exitPrice": 12998,
         "exitReason": "stop_loss",
         "pnl": -300352
+      },
+      {
+        "ticker": "222800",
+        "name": "심텍",
+        "market": "KOSDAQ",
+        "entryDate": "2026-10-05",
+        "entryPrice": 170200,
+        "shares": 29,
+        "stopLoss": 159274,
+        "exitDate": "2026-10-12",
+        "exitPrice": 159274,
+        "exitReason": "stop_loss",
+        "pnl": -316854
       }
     ]
   },
