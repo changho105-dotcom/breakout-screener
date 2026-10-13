@@ -1,19 +1,10 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 48,
-  "lastRunDate": "2026-10-12",
+  "dayCount": 49,
+  "lastRunDate": "2026-10-13",
   "kr": {
-    "cash": 33644700,
+    "cash": 38248902,
     "positions": [
-      {
-        "ticker": "219130",
-        "name": "타이거일렉",
-        "market": "KOSDAQ",
-        "entryDate": "2026-09-29",
-        "entryPrice": 91000,
-        "shares": 54,
-        "stopLoss": 85263
-      },
       {
         "ticker": "096530",
         "name": "씨젠",
@@ -33,7 +24,7 @@
         "stopLoss": 10466.3
       }
     ],
-    "realizedPnl": -1471850,
+    "realizedPnl": -1781648,
     "trades": [
       {
         "ticker": "131290",
@@ -99,12 +90,25 @@
         "exitPrice": 159274,
         "exitReason": "stop_loss",
         "pnl": -316854
+      },
+      {
+        "ticker": "219130",
+        "name": "타이거일렉",
+        "market": "KOSDAQ",
+        "entryDate": "2026-09-29",
+        "entryPrice": 91000,
+        "shares": 54,
+        "stopLoss": 85263,
+        "exitDate": "2026-10-13",
+        "exitPrice": 85263,
+        "exitReason": "stop_loss",
+        "pnl": -309798
       }
     ]
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 28425.49696332748,
+    "cashUsd": 31425.146926706388,
     "positions": [
       {
         "ticker": "CRWD",
@@ -113,17 +117,9 @@
         "entryPrice": 235.3800048828125,
         "shares": 14,
         "stopLoss": 226.8636047363281
-      },
-      {
-        "ticker": "AMD",
-        "name": "Advanced Micro Devices Inc.",
-        "entryDate": "2026-09-22",
-        "entryPrice": 615.52001953125,
-        "shares": 5,
-        "stopLoss": 567.1880810546875
       }
     ],
-    "realizedPnl": -475.50520019027795,
+    "realizedPnl": -553.4553344676217,
     "trades": [
       {
         "ticker": "ANET",
@@ -244,6 +240,18 @@
         "exitPrice": 222.97999572753906,
         "exitReason": "ma20_break",
         "pnl": -68.25004577636719
+      },
+      {
+        "ticker": "AMD",
+        "name": "Advanced Micro Devices Inc.",
+        "entryDate": "2026-09-22",
+        "entryPrice": 615.52001953125,
+        "shares": 5,
+        "stopLoss": 567.1880810546875,
+        "exitDate": "2026-10-13",
+        "exitPrice": 599.9299926757812,
+        "exitReason": "ma20_break",
+        "pnl": -77.95013427734375
       }
     ],
     "fxRateAtStart": 1417.8800048828125
