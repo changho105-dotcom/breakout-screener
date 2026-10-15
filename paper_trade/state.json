@@ -1,30 +1,11 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 50,
-  "lastRunDate": "2026-10-14",
+  "dayCount": 51,
+  "lastRunDate": "2026-10-15",
   "kr": {
-    "cash": 38248902,
-    "positions": [
-      {
-        "ticker": "096530",
-        "name": "씨젠",
-        "market": "KOSDAQ",
-        "entryDate": "2026-10-01",
-        "entryPrice": 37150,
-        "shares": 134,
-        "stopLoss": 34677.5
-      },
-      {
-        "ticker": "041960",
-        "name": "코미팜",
-        "market": "KOSDAQ",
-        "entryDate": "2026-10-07",
-        "entryPrice": 10970,
-        "shares": 455,
-        "stopLoss": 10466.3
-      }
-    ],
-    "realizedPnl": -1781648,
+    "cash": 47657853.5,
+    "positions": [],
+    "realizedPnl": -2342146.5000000005,
     "trades": [
       {
         "ticker": "131290",
@@ -103,23 +84,40 @@
         "exitPrice": 85263,
         "exitReason": "stop_loss",
         "pnl": -309798
+      },
+      {
+        "ticker": "096530",
+        "name": "씨젠",
+        "market": "KOSDAQ",
+        "entryDate": "2026-10-01",
+        "entryPrice": 37150,
+        "shares": 134,
+        "stopLoss": 34677.5,
+        "exitDate": "2026-10-15",
+        "exitPrice": 34677.5,
+        "exitReason": "stop_loss",
+        "pnl": -331315
+      },
+      {
+        "ticker": "041960",
+        "name": "코미팜",
+        "market": "KOSDAQ",
+        "entryDate": "2026-10-07",
+        "entryPrice": 10970,
+        "shares": 455,
+        "stopLoss": 10466.3,
+        "exitDate": "2026-10-15",
+        "exitPrice": 10466.3,
+        "exitReason": "stop_loss",
+        "pnl": -229183.50000000032
       }
     ]
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 31425.146926706388,
-    "positions": [
-      {
-        "ticker": "CRWD",
-        "name": "CrowdStrike",
-        "entryDate": "2026-09-15",
-        "entryPrice": 235.3800048828125,
-        "shares": 14,
-        "stopLoss": 226.8636047363281
-      }
-    ],
-    "realizedPnl": -553.4553344676217,
+    "cashUsd": 34977.507003610684,
+    "positions": [],
+    "realizedPnl": -296.4153259226998,
     "trades": [
       {
         "ticker": "ANET",
@@ -252,6 +250,18 @@
         "exitPrice": 599.9299926757812,
         "exitReason": "ma20_break",
         "pnl": -77.95013427734375
+      },
+      {
+        "ticker": "CRWD",
+        "name": "CrowdStrike",
+        "entryDate": "2026-09-15",
+        "entryPrice": 235.3800048828125,
+        "shares": 14,
+        "stopLoss": 226.8636047363281,
+        "exitDate": "2026-10-15",
+        "exitPrice": 253.74000549316406,
+        "exitReason": "ma20_break",
+        "pnl": 257.0400085449219
       }
     ],
     "fxRateAtStart": 1417.8800048828125
