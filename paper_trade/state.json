@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 51,
-  "lastRunDate": "2026-10-15",
+  "dayCount": 52,
+  "lastRunDate": "2026-10-16",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,8 +115,25 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 34977.507003610684,
-    "positions": [],
+    "cashUsd": 28015.486869638517,
+    "positions": [
+      {
+        "ticker": "KDP",
+        "name": "Keurig Dr Pepper",
+        "entryDate": "2026-10-16",
+        "entryPrice": 34.18000030517578,
+        "shares": 103,
+        "stopLoss": 30.059999465942383
+      },
+      {
+        "ticker": "EBAY",
+        "name": "eBay Inc.",
+        "entryDate": "2026-10-16",
+        "entryPrice": 122.91000366210938,
+        "shares": 28,
+        "stopLoss": 104.61000061035156
+      }
+    ],
     "realizedPnl": -296.4153259226998,
     "trades": [
       {
