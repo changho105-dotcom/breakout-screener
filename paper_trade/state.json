@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 55,
-  "lastRunDate": "2026-10-21",
+  "dayCount": 56,
+  "lastRunDate": "2026-10-22",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,7 +115,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 28015.486869638517,
+    "cashUsd": 24566.78691846664,
     "positions": [
       {
         "ticker": "KDP",
@@ -132,6 +132,14 @@
         "entryPrice": 122.91000366210938,
         "shares": 28,
         "stopLoss": 104.61000061035156
+      },
+      {
+        "ticker": "CRL",
+        "name": "Charles River Laboratories",
+        "entryDate": "2026-10-22",
+        "entryPrice": 344.8699951171875,
+        "shares": 10,
+        "stopLoss": 323.30098815917967
       }
     ],
     "realizedPnl": -296.4153259226998,
