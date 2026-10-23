@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 56,
-  "lastRunDate": "2026-10-22",
+  "dayCount": 57,
+  "lastRunDate": "2026-10-23",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,7 +115,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 24566.78691846664,
+    "cashUsd": 17879.526939218595,
     "positions": [
       {
         "ticker": "KDP",
@@ -140,6 +140,22 @@
         "entryPrice": 344.8699951171875,
         "shares": 10,
         "stopLoss": 323.30098815917967
+      },
+      {
+        "ticker": "BIIB",
+        "name": "Biogen",
+        "entryDate": "2026-10-23",
+        "entryPrice": 253.83999633789062,
+        "shares": 13,
+        "stopLoss": 215.72999572753906
+      },
+      {
+        "ticker": "ADP",
+        "name": "ADP",
+        "entryDate": "2026-10-23",
+        "entryPrice": 307.94000244140625,
+        "shares": 11,
+        "stopLoss": 255.9600067138672
       }
     ],
     "realizedPnl": -296.4153259226998,
