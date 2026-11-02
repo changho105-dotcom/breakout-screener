@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 57,
-  "lastRunDate": "2026-11-01",
+  "dayCount": 58,
+  "lastRunDate": "2026-11-02",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,7 +115,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 28015.486869638517,
+    "cashUsd": 21206.856864755704,
     "positions": [
       {
         "ticker": "KDP",
@@ -132,6 +132,22 @@
         "entryPrice": 122.91000366210938,
         "shares": 28,
         "stopLoss": 104.61000061035156
+      },
+      {
+        "ticker": "CVX",
+        "name": "Chevron Corporation",
+        "entryDate": "2026-11-02",
+        "entryPrice": 235.52000427246094,
+        "shares": 14,
+        "stopLoss": 201.9600067138672
+      },
+      {
+        "ticker": "MO",
+        "name": "Altria",
+        "entryDate": "2026-11-02",
+        "entryPrice": 78.02999877929688,
+        "shares": 45,
+        "stopLoss": 65.77999877929688
       }
     ],
     "realizedPnl": -296.4153259226998,
