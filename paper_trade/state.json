@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 61,
-  "lastRunDate": "2026-11-05",
+  "dayCount": 62,
+  "lastRunDate": "2026-11-06",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,7 +115,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 521.1169202976962,
+    "cashUsd": 308.0461045628326,
     "positions": [
       {
         "ticker": "KDP",
@@ -142,14 +142,6 @@
         "stopLoss": 65.77999877929688
       },
       {
-        "ticker": "CDW",
-        "name": "CDW Corporation",
-        "entryDate": "2026-11-05",
-        "entryPrice": 168.75,
-        "shares": 20,
-        "stopLoss": 161.16549407958985
-      },
-      {
         "ticker": "CNC",
         "name": "Centene Corporation",
         "entryDate": "2026-11-05",
@@ -158,28 +150,12 @@
         "stopLoss": 63.349998474121094
       },
       {
-        "ticker": "AMGN",
-        "name": "Amgen Inc.",
-        "entryDate": "2026-11-05",
-        "entryPrice": 478.4800109863281,
-        "shares": 7,
-        "stopLoss": 461.3804940795898
-      },
-      {
         "ticker": "BDX",
         "name": "Becton Dickinson",
         "entryDate": "2026-11-05",
         "entryPrice": 209.19000244140625,
         "shares": 16,
         "stopLoss": 177.9199981689453
-      },
-      {
-        "ticker": "XYZ",
-        "name": "Block, Inc.",
-        "entryDate": "2026-11-05",
-        "entryPrice": 87.62999725341797,
-        "shares": 40,
-        "stopLoss": 84.31239822387695
       },
       {
         "ticker": "MSFT",
@@ -196,9 +172,33 @@
         "entryPrice": 308.5199890136719,
         "shares": 11,
         "stopLoss": 265
+      },
+      {
+        "ticker": "CAH",
+        "name": "Cardinal Health",
+        "entryDate": "2026-11-06",
+        "entryPrice": 267.82000732421875,
+        "shares": 13,
+        "stopLoss": 231.25
+      },
+      {
+        "ticker": "CPAY",
+        "name": "Corpay",
+        "entryDate": "2026-11-06",
+        "entryPrice": 447,
+        "shares": 7,
+        "stopLoss": 389.760009765625
+      },
+      {
+        "ticker": "EW",
+        "name": "Edwards Lifesciences",
+        "entryDate": "2026-11-06",
+        "entryPrice": 100.81999969482422,
+        "shares": 34,
+        "stopLoss": 97.24249999999999
       }
     ],
-    "realizedPnl": -477.85541991684045,
+    "realizedPnl": -881.9461178538522,
     "trades": [
       {
         "ticker": "ANET",
@@ -355,6 +355,42 @@
         "exitPrice": 222.55999755859375,
         "exitReason": "ma20_break",
         "pnl": -181.44009399414062
+      },
+      {
+        "ticker": "CDW",
+        "name": "CDW Corporation",
+        "entryDate": "2026-11-05",
+        "entryPrice": 168.75,
+        "shares": 20,
+        "stopLoss": 161.16549407958985,
+        "exitDate": "2026-11-06",
+        "exitPrice": 161.16549407958985,
+        "exitReason": "stop_loss",
+        "pnl": -151.69011840820303
+      },
+      {
+        "ticker": "AMGN",
+        "name": "Amgen Inc.",
+        "entryDate": "2026-11-05",
+        "entryPrice": 478.4800109863281,
+        "shares": 7,
+        "stopLoss": 461.3804940795898,
+        "exitDate": "2026-11-06",
+        "exitPrice": 461.3804940795898,
+        "exitReason": "stop_loss",
+        "pnl": -119.69661834716811
+      },
+      {
+        "ticker": "XYZ",
+        "name": "Block, Inc.",
+        "entryDate": "2026-11-05",
+        "entryPrice": 87.62999725341797,
+        "shares": 40,
+        "stopLoss": 84.31239822387695,
+        "exitDate": "2026-11-06",
+        "exitPrice": 84.31239822387695,
+        "exitReason": "stop_loss",
+        "pnl": -132.70396118164058
       }
     ],
     "fxRateAtStart": 1417.8800048828125
