@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 62,
-  "lastRunDate": "2026-11-08",
+  "dayCount": 63,
+  "lastRunDate": "2026-11-09",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,7 +115,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 308.0461045628326,
+    "cashUsd": 3462.18611921127,
     "positions": [
       {
         "ticker": "KDP",
@@ -158,14 +158,6 @@
         "stopLoss": 177.9199981689453
       },
       {
-        "ticker": "MSFT",
-        "name": "Microsoft Corporation",
-        "entryDate": "2026-11-05",
-        "entryPrice": 555.7999877929688,
-        "shares": 6,
-        "stopLoss": 504.9599914550781
-      },
-      {
         "ticker": "AIZ",
         "name": "Assurant",
         "entryDate": "2026-11-05",
@@ -198,7 +190,7 @@
         "stopLoss": 97.24249999999999
       }
     ],
-    "realizedPnl": -881.9461178538522,
+    "realizedPnl": -1062.6060299632272,
     "trades": [
       {
         "ticker": "ANET",
@@ -391,6 +383,18 @@
         "exitPrice": 84.31239822387695,
         "exitReason": "stop_loss",
         "pnl": -132.70396118164058
+      },
+      {
+        "ticker": "MSFT",
+        "name": "Microsoft Corporation",
+        "entryDate": "2026-11-05",
+        "entryPrice": 555.7999877929688,
+        "shares": 6,
+        "stopLoss": 504.9599914550781,
+        "exitDate": "2026-11-09",
+        "exitPrice": 525.6900024414062,
+        "exitReason": "ma20_break",
+        "pnl": -180.659912109375
       }
     ],
     "fxRateAtStart": 1417.8800048828125
