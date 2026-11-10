@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 63,
-  "lastRunDate": "2026-11-09",
+  "dayCount": 64,
+  "lastRunDate": "2026-11-10",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,7 +115,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 3462.18611921127,
+    "cashUsd": 6682.18611921127,
     "positions": [
       {
         "ticker": "KDP",
@@ -140,14 +140,6 @@
         "entryPrice": 78.02999877929688,
         "shares": 45,
         "stopLoss": 65.77999877929688
-      },
-      {
-        "ticker": "CNC",
-        "name": "Centene Corporation",
-        "entryDate": "2026-11-05",
-        "entryPrice": 76.01000213623047,
-        "shares": 46,
-        "stopLoss": 63.349998474121094
       },
       {
         "ticker": "BDX",
@@ -190,7 +182,7 @@
         "stopLoss": 97.24249999999999
       }
     ],
-    "realizedPnl": -1062.6060299632272,
+    "realizedPnl": -1339.0661282298288,
     "trades": [
       {
         "ticker": "ANET",
@@ -395,6 +387,18 @@
         "exitPrice": 525.6900024414062,
         "exitReason": "ma20_break",
         "pnl": -180.659912109375
+      },
+      {
+        "ticker": "CNC",
+        "name": "Centene Corporation",
+        "entryDate": "2026-11-05",
+        "entryPrice": 76.01000213623047,
+        "shares": 46,
+        "stopLoss": 63.349998474121094,
+        "exitDate": "2026-11-10",
+        "exitPrice": 70,
+        "exitReason": "ma20_break",
+        "pnl": -276.46009826660156
       }
     ],
     "fxRateAtStart": 1417.8800048828125
