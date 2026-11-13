@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 66,
-  "lastRunDate": "2026-11-12",
+  "dayCount": 67,
+  "lastRunDate": "2026-11-13",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,24 +115,8 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 6682.18611921127,
+    "cashUsd": 13866.176189554288,
     "positions": [
-      {
-        "ticker": "KDP",
-        "name": "Keurig Dr Pepper",
-        "entryDate": "2026-10-16",
-        "entryPrice": 34.18000030517578,
-        "shares": 103,
-        "stopLoss": 30.059999465942383
-      },
-      {
-        "ticker": "EBAY",
-        "name": "eBay Inc.",
-        "entryDate": "2026-10-16",
-        "entryPrice": 122.91000366210938,
-        "shares": 28,
-        "stopLoss": 104.61000061035156
-      },
       {
         "ticker": "MO",
         "name": "Altria",
@@ -182,7 +166,7 @@
         "stopLoss": 97.24249999999999
       }
     ],
-    "realizedPnl": -1339.0661282298288,
+    "realizedPnl": -1117.0961918589792,
     "trades": [
       {
         "ticker": "ANET",
@@ -399,6 +383,30 @@
         "exitPrice": 70,
         "exitReason": "ma20_break",
         "pnl": -276.46009826660156
+      },
+      {
+        "ticker": "KDP",
+        "name": "Keurig Dr Pepper",
+        "entryDate": "2026-10-16",
+        "entryPrice": 34.18000030517578,
+        "shares": 103,
+        "stopLoss": 30.059999465942383,
+        "exitDate": "2026-11-13",
+        "exitPrice": 36.4900016784668,
+        "exitReason": "ma20_break",
+        "pnl": 237.9301414489746
+      },
+      {
+        "ticker": "EBAY",
+        "name": "eBay Inc.",
+        "entryDate": "2026-10-16",
+        "entryPrice": 122.91000366210938,
+        "shares": 28,
+        "stopLoss": 104.61000061035156,
+        "exitDate": "2026-11-13",
+        "exitPrice": 122.33999633789062,
+        "exitReason": "ma20_break",
+        "pnl": -15.960205078125
       }
     ],
     "fxRateAtStart": 1417.8800048828125
