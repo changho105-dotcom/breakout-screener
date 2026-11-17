@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 68,
-  "lastRunDate": "2026-11-16",
+  "dayCount": 69,
+  "lastRunDate": "2026-11-17",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,7 +115,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 13866.176189554288,
+    "cashUsd": 10423.976253641202,
     "positions": [
       {
         "ticker": "MO",
@@ -164,6 +164,14 @@
         "entryPrice": 100.81999969482422,
         "shares": 34,
         "stopLoss": 97.24249999999999
+      },
+      {
+        "ticker": "CHD",
+        "name": "Church & Dwight",
+        "entryDate": "2026-11-17",
+        "entryPrice": 114.73999786376953,
+        "shares": 30,
+        "stopLoss": 103.19000244140625
       }
     ],
     "realizedPnl": -1117.0961918589792,
