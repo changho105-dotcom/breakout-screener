@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 70,
-  "lastRunDate": "2026-11-18",
+  "dayCount": 71,
+  "lastRunDate": "2026-11-19",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,16 +115,8 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 10423.976253641202,
+    "cashUsd": 13886.276363504483,
     "positions": [
-      {
-        "ticker": "MO",
-        "name": "Altria",
-        "entryDate": "2026-11-02",
-        "entryPrice": 78.02999877929688,
-        "shares": 45,
-        "stopLoss": 65.77999877929688
-      },
       {
         "ticker": "BDX",
         "name": "Becton Dickinson",
@@ -174,7 +166,7 @@
         "stopLoss": 103.19000244140625
       }
     ],
-    "realizedPnl": -1117.0961918589792,
+    "realizedPnl": -1166.1460270640573,
     "trades": [
       {
         "ticker": "ANET",
@@ -415,6 +407,18 @@
         "exitPrice": 122.33999633789062,
         "exitReason": "ma20_break",
         "pnl": -15.960205078125
+      },
+      {
+        "ticker": "MO",
+        "name": "Altria",
+        "entryDate": "2026-11-02",
+        "entryPrice": 78.02999877929688,
+        "shares": 45,
+        "stopLoss": 65.77999877929688,
+        "exitDate": "2026-11-19",
+        "exitPrice": 76.94000244140625,
+        "exitReason": "ma20_break",
+        "pnl": -49.049835205078125
       }
     ],
     "fxRateAtStart": 1417.8800048828125
