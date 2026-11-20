@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 71,
-  "lastRunDate": "2026-11-19",
+  "dayCount": 72,
+  "lastRunDate": "2026-11-20",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,7 +115,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 13886.276363504483,
+    "cashUsd": 17188.9762536412,
     "positions": [
       {
         "ticker": "BDX",
@@ -156,17 +156,9 @@
         "entryPrice": 100.81999969482422,
         "shares": 34,
         "stopLoss": 97.24249999999999
-      },
-      {
-        "ticker": "CHD",
-        "name": "Church & Dwight",
-        "entryDate": "2026-11-17",
-        "entryPrice": 114.73999786376953,
-        "shares": 30,
-        "stopLoss": 103.19000244140625
       }
     ],
-    "realizedPnl": -1166.1460270640573,
+    "realizedPnl": -1305.6460728404245,
     "trades": [
       {
         "ticker": "ANET",
@@ -419,6 +411,18 @@
         "exitPrice": 76.94000244140625,
         "exitReason": "ma20_break",
         "pnl": -49.049835205078125
+      },
+      {
+        "ticker": "CHD",
+        "name": "Church & Dwight",
+        "entryDate": "2026-11-17",
+        "entryPrice": 114.73999786376953,
+        "shares": 30,
+        "stopLoss": 103.19000244140625,
+        "exitDate": "2026-11-20",
+        "exitPrice": 110.08999633789062,
+        "exitReason": "ma20_break",
+        "pnl": -139.5000457763672
       }
     ],
     "fxRateAtStart": 1417.8800048828125
