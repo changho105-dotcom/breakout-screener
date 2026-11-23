@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 72,
-  "lastRunDate": "2026-11-22",
+  "dayCount": 73,
+  "lastRunDate": "2026-11-23",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,7 +115,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 17188.9762536412,
+    "cashUsd": 20246.506313455655,
     "positions": [
       {
         "ticker": "BDX",
@@ -142,14 +142,6 @@
         "stopLoss": 231.25
       },
       {
-        "ticker": "CPAY",
-        "name": "Corpay",
-        "entryDate": "2026-11-06",
-        "entryPrice": 447,
-        "shares": 7,
-        "stopLoss": 389.760009765625
-      },
-      {
         "ticker": "EW",
         "name": "Edwards Lifesciences",
         "entryDate": "2026-11-06",
@@ -158,7 +150,7 @@
         "stopLoss": 97.24249999999999
       }
     ],
-    "realizedPnl": -1305.6460728404245,
+    "realizedPnl": -1377.1160130259714,
     "trades": [
       {
         "ticker": "ANET",
@@ -423,6 +415,18 @@
         "exitPrice": 110.08999633789062,
         "exitReason": "ma20_break",
         "pnl": -139.5000457763672
+      },
+      {
+        "ticker": "CPAY",
+        "name": "Corpay",
+        "entryDate": "2026-11-06",
+        "entryPrice": 447,
+        "shares": 7,
+        "stopLoss": 389.760009765625,
+        "exitDate": "2026-11-23",
+        "exitPrice": 436.7900085449219,
+        "exitReason": "ma20_break",
+        "pnl": -71.46994018554688
       }
     ],
     "fxRateAtStart": 1417.8800048828125
