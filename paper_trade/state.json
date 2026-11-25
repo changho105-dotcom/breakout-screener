@@ -1,7 +1,7 @@
 {
   "startDate": "2026-08-06",
-  "dayCount": 74,
-  "lastRunDate": "2026-11-24",
+  "dayCount": 75,
+  "lastRunDate": "2026-11-25",
   "kr": {
     "cash": 47657853.5,
     "positions": [],
@@ -115,7 +115,7 @@
   },
   "us": {
     "cashKrwEquiv": 50000000,
-    "cashUsd": 20246.506313455655,
+    "cashUsd": 13357.32636655624,
     "positions": [
       {
         "ticker": "BDX",
@@ -148,6 +148,22 @@
         "entryPrice": 100.81999969482422,
         "shares": 34,
         "stopLoss": 97.24249999999999
+      },
+      {
+        "ticker": "DLTR",
+        "name": "Dollar Tree",
+        "entryDate": "2026-11-25",
+        "entryPrice": 154.64999389648438,
+        "shares": 22,
+        "stopLoss": 144.08379348754883
+      },
+      {
+        "ticker": "A",
+        "name": "Agilent Technologies",
+        "entryDate": "2026-11-25",
+        "entryPrice": 183.52000427246094,
+        "shares": 19,
+        "stopLoss": 169.39999389648438
       }
     ],
     "realizedPnl": -1377.1160130259714,
